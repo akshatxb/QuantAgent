@@ -8,5 +8,5 @@ DEFAULT_CONFIG = {
     "api_key": "sk-",  # OpenAI API key
     "anthropic_api_key": "sk-",  # Anthropic API key (optional, can also use ANTHROPIC_API_KEY env var)
     "qwen_api_key": "sk-",  # Qwen API key (optional, can also use DASHSCOPE_API_KEY env var)
-    "gemini_api_key": "AIzaSyBWu9k5NJ6nynQ8NjcY_fyFA3L6Wq0iawo",  # Gemini API key (optional, can also use GEMINI_API_KEY env var)  
+    "gemini_api_key": "",  # Gemini API key (optional, can also use GEMINI_API_KEY env var)  
 }
