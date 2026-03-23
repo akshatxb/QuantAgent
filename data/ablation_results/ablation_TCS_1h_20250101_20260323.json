@@ -1,0 +1,120 @@
+{
+  "meta": {
+    "backtest_file": "TCS_1h_20250101_20260323.json",
+    "ticker": "TCS",
+    "display_name": "Tata Consultancy Services",
+    "market": "NSE",
+    "interval": "1h",
+    "n_records": 94,
+    "n_directional": 73,
+    "hold_count": 21,
+    "hold_rate": 0.2234,
+    "run_at": "2026-03-23T22:06:40.250621"
+  },
+  "variants": [
+    {
+      "total_signals": 94,
+      "active_signals": 94,
+      "hold_signals": 0,
+      "correct": 43,
+      "accuracy": 0.4574,
+      "filtered_accuracy": 0.4574,
+      "sharpe_ratio": -1.9111,
+      "cumulative_pnl": -0.149123,
+      "confusion_matrix": {
+        "TP": 17,
+        "TN": 26,
+        "FP": 28,
+        "FN": 23
+      },
+      "precision": 0.3778,
+      "recall": 0.425,
+      "f1_score": 0.4,
+      "long_accuracy": 0.3778,
+      "short_accuracy": 0.5306,
+      "long_signals": 45,
+      "short_signals": 49,
+      "variant": "random_baseline",
+      "label": "Random baseline",
+      "description": "Coin-flip LONG/SHORT \u2014 the floor all agents must beat"
+    },
+    {
+      "total_signals": 94,
+      "active_signals": 94,
+      "hold_signals": 0,
+      "correct": 40,
+      "accuracy": 0.4255,
+      "filtered_accuracy": 0.4255,
+      "sharpe_ratio": -1.494,
+      "cumulative_pnl": -0.116902,
+      "confusion_matrix": {
+        "TP": 25,
+        "TN": 15,
+        "FP": 39,
+        "FN": 15
+      },
+      "precision": 0.3906,
+      "recall": 0.625,
+      "f1_score": 0.4808,
+      "long_accuracy": 0.3906,
+      "short_accuracy": 0.5,
+      "long_signals": 64,
+      "short_signals": 30,
+      "variant": "indicators_only",
+      "label": "Indicators only",
+      "description": "Keyword-majority heuristic over indicator report \u2014 no LLM"
+    },
+    {
+      "total_signals": 73,
+      "active_signals": 73,
+      "hold_signals": 0,
+      "correct": 38,
+      "accuracy": 0.5205,
+      "filtered_accuracy": 0.5205,
+      "sharpe_ratio": 1.4247,
+      "cumulative_pnl": 0.085268,
+      "confusion_matrix": {
+        "TP": 21,
+        "TN": 17,
+        "FP": 26,
+        "FN": 9
+      },
+      "precision": 0.4468,
+      "recall": 0.7,
+      "f1_score": 0.5455,
+      "long_accuracy": 0.4468,
+      "short_accuracy": 0.6538,
+      "long_signals": 47,
+      "short_signals": 26,
+      "variant": "full_quantagent",
+      "label": "Full QuantAgent",
+      "description": "Complete pipeline: indicator + pattern + trend agents \u2192 LLM decision (directional calls only)"
+    }
+  ],
+  "comparison": {
+    "accuracy": {
+      "random_baseline": 0.4574,
+      "indicators_only": 0.4255,
+      "full_quantagent": 0.5205
+    },
+    "sharpe_ratio": {
+      "random_baseline": -1.9111,
+      "indicators_only": -1.494,
+      "full_quantagent": 1.4247
+    },
+    "f1_score": {
+      "random_baseline": 0.4,
+      "indicators_only": 0.4808,
+      "full_quantagent": 0.5455
+    },
+    "cum_pnl": {
+      "random_baseline": -0.149123,
+      "indicators_only": -0.116902,
+      "full_quantagent": 0.085268
+    }
+  },
+  "best_variant": "full_quantagent",
+  "lift_vs_random_pp": 6.31,
+  "lift_vs_indicators_pp": 9.5,
+  "has_prediction_layer": false
+}

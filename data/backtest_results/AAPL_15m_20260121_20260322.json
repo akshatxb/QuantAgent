@@ -1,0 +1,116 @@
+{
+  "meta": {
+    "ticker": "AAPL",
+    "yf_symbol": "AAPL",
+    "display_name": "Apple Inc.",
+    "market": "US",
+    "interval": "15m",
+    "start": "2026-01-21",
+    "end": "2026-03-22",
+    "total_runs": 3,
+    "errors": 0,
+    "outcome_horizon": 3,
+    "run_at": "2026-03-23T00:51:06.036327"
+  },
+  "agent_stats": {
+    "total_signals": 3,
+    "correct": 0,
+    "accuracy": 0.0,
+    "win_rate": 0.0,
+    "sharpe_ratio": -15.6514,
+    "cumulative_pnl": -0.020074,
+    "confusion_matrix": {
+      "TP": 0,
+      "TN": 0,
+      "FP": 0,
+      "FN": 3
+    },
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1_score": 0.0,
+    "long_accuracy": 0.0,
+    "short_accuracy": 0.0,
+    "long_signals": 0,
+    "short_signals": 3,
+    "variant": "full_quantagent"
+  },
+  "baseline_stats": {
+    "total_signals": 3,
+    "correct": 2,
+    "accuracy": 0.6667,
+    "win_rate": 0.6667,
+    "sharpe_ratio": 10.4509,
+    "cumulative_pnl": 0.015722,
+    "confusion_matrix": {
+      "TP": 2,
+      "TN": 0,
+      "FP": 0,
+      "FN": 1
+    },
+    "precision": 1.0,
+    "recall": 0.6667,
+    "f1_score": 0.8,
+    "long_accuracy": 1.0,
+    "short_accuracy": 0.0,
+    "long_signals": 2,
+    "short_signals": 1,
+    "variant": "random_baseline"
+  },
+  "pnl_curve": [
+    -0.001614,
+    -0.00379,
+    -0.020074
+  ],
+  "rolling_accuracy": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "records": [
+    {
+      "run": 0,
+      "window_start": "2026-01-22 14:30:00+00:00",
+      "signal_time": "2026-01-23 19:00:00+00:00",
+      "signal": "SHORT",
+      "outcome": "LONG",
+      "correct": false,
+      "pnl": -0.001614375790398424,
+      "pnl_magnitude": 0.001614375790398424,
+      "entry_price": 247.77000427246094,
+      "exit_price": 248.1699981689453,
+      "indicator_report": "Here is the analysis of the technical indicators based on the provided OHLC data:\n\n### 1. **Relative Strength Index (RSI)**\n   - Recent RSI values: [45.76, 41.64, 42.97, 45.54]\n   - Interpretation: The RSI is currently in the neutral zone (30-70), indicating no strong overbought or oversold conditions. However, the RSI has been trending slightly upwards, suggesting a potential recovery in momentum.\n\n### 2. **Moving Average Convergence Divergence (MACD)**\n   - Recent MACD Line: [-0.36, -0.37, -0.35]\n   - Recent Signal Line: [-0.37, -0.37, -0.36]\n   - Recent MACD Histogram: [0.01, -0.00, 0.01]\n   - Interpretation: The MACD line is slightly below the signal line, indicating a weak bearish momentum. However, the histogram shows a slight positive divergence, which could signal a potential reversal to bullish momentum.\n\n### 3. **Rate of Change (ROC)**\n   - Recent ROC values: [-0.42, -0.58, -0.33, -0.22]\n   - Interpretation: The ROC is negative but showing signs of improvement, indicating that the price is still declining but at a slower rate. This could suggest a potential stabilization or reversal.\n\n### 4. **Stochastic Oscillator (%K and %D)**\n   - Recent %K values: [63.18, 56.4, 42.65, 33.58]\n   - Recent %D values: [68.27, 62.24, 54.08, 44.21]\n   - Interpretation: Both %K and %D are trending downward, moving closer to the oversold region (below 20). This indicates weakening momentum and potential oversold conditions if the trend continues.\n\n### 5. **Williams %R**\n   - Recent Williams %R values: [-40.0, -54.59, -77.46, -67.21]\n   - Interpretation: The Williams %R is currently in the oversold region (below -80), suggesting that the asset might be undervalued and could experience a potential reversal.\n\n---\n\n### **Summary**\n- The RSI and ROC indicate a neutral to slightly bearish momentum, but there are signs of potential stabilization or reversal.\n- The MACD shows weak bearish momentum, but the histogram suggests a possible bullish crossover.\n- The Stochastic Oscillator and Williams %R indicate that the asset is approaching or already in oversold territory, which could signal a buying opportunity.\n\n### **Actionable Insights**\n- **Short-term traders**: Monitor for a potential reversal signal, especially if the MACD histogram continues to show positive divergence or if the Stochastic Oscillator %K crosses above %D in the oversold region.\n- **Risk management**: Consider setting stop-loss levels below recent support levels to manage downside risk.\n\nWould you like to focus on any specific indicator or timeframe for further analysis?",
+      "pattern_report": "Based on the provided candlestick chart, the following observations can be made:\n\n### Matched Pattern:\n**V-shaped Reversal**\n\n### Reasoning:\n1. **Sharp Decline**: There is a steep drop in price around January 22, 20:45, as indicated by the large red candlestick.\n2. **Sharp Recovery**: Following the decline, there is a strong upward movement with large green candlesticks, forming a sharp recovery.\n3. **Symmetry**: The decline and recovery form a \"V\" shape, characteristic of a V-shaped reversal pattern.\n\nThis pattern often indicates a rapid change in market sentiment, with a strong recovery after a sharp decline.",
+      "trend_report": "### Analysis of Price Interaction with Trendlines:\n1. **Support (Blue Line):**\n   - The price has tested the blue support line multiple times, with some candles bouncing off it (e.g., near Jan 23, 15:30). This indicates that the support is holding, but the slope of the support line is downward, suggesting weakening demand.\n\n2. **Resistance (Red Line):**\n   - The price has also interacted with the red resistance line, with candles failing to break above it. The downward slope of the resistance line indicates increasing selling pressure.\n\n3. **Compression:**\n   - The price is compressing between the downward-sloping support and resistance lines, forming a narrowing wedge pattern. This suggests indecision and a potential breakout soon.\n\n---\n\n### Prediction of Short-Term Trend:\n**Likely Trend: Downward**\n\n#### Reasoning:\n1. **Trendline Slope:**\n   - Both the support and resistance lines are sloping downward, indicating a bearish bias.\n\n2. **Price Behavior:**\n   - The price has failed to break above the resistance line and is testing the support line more frequently, suggesting weakening support.\n\n3. **Signals:**\n   - The narrowing wedge pattern typically resolves in the direction of the prevailing trend, which is downward in this case.\n\n---\n\n### Conclusion:\nExpect a **downward breakout** if the price breaches the blue support line. However, monitor for any sudden bullish momentum that could challenge the resistance line."
+    },
+    {
+      "run": 1,
+      "window_start": "2026-01-22 15:15:00+00:00",
+      "signal_time": "2026-01-23 19:45:00+00:00",
+      "signal": "SHORT",
+      "outcome": "LONG",
+      "correct": false,
+      "pnl": -0.002175962239215783,
+      "pnl_magnitude": 0.002175962239215783,
+      "entry_price": 248.1699981689453,
+      "exit_price": 248.7100067138672,
+      "indicator_report": "Here is the analysis of the technical indicators based on the provided OHLC data:\n\n### 1. **Relative Strength Index (RSI)**\n   - **Current RSI**: 49.68\n   - **Interpretation**: The RSI is approaching the neutral zone (50). It indicates neither overbought nor oversold conditions, but the recent upward trend suggests a potential bullish momentum.\n\n---\n\n### 2. **Moving Average Convergence Divergence (MACD)**\n   - **Current MACD Line**: -0.43\n   - **Current Signal Line**: -0.41\n   - **MACD Histogram**: -0.02\n   - **Interpretation**: The MACD line is below the signal line, indicating a bearish momentum. However, the histogram shows a slight reduction in the bearish momentum, suggesting a potential reversal.\n\n---\n\n### 3. **Rate of Change (ROC)**\n   - **Current ROC**: -0.23\n   - **Interpretation**: The ROC is negative, indicating a slight downward momentum in price. However, the magnitude is small, suggesting a relatively weak bearish trend.\n\n---\n\n### 4. **Stochastic Oscillator**\n   - **%K (Current)**: 48.67\n   - **%D (Current)**: 37.29\n   - **Interpretation**: The stochastic oscillator is in the middle range, indicating no strong overbought or oversold conditions. However, the %K line is above the %D line, which could signal a potential bullish crossover.\n\n---\n\n### 5. **Williams %R**\n   - **Current Williams %R**: -34.78\n   - **Interpretation**: The Williams %R is in the neutral zone, indicating that the market is neither overbought nor oversold. However, it is moving closer to the overbought threshold (-20).\n\n---\n\n### **Summary**\n- The indicators suggest a mixed sentiment in the market:\n  - RSI and Stochastic Oscillator hint at a potential bullish momentum.\n  - MACD and ROC indicate a slight bearish trend but with weakening momentum.\n  - Williams %R is neutral but leaning towards overbought.\n\n### **Recommendation**\n- **Short-Term Strategy**: Wait for confirmation of a trend reversal. If the MACD histogram turns positive or RSI crosses above 50, consider a bullish position.\n- **Risk Management**: Set tight stop-loss levels due to the mixed signals.",
+      "pattern_report": "Based on the provided candlestick chart, the pattern that most closely matches is the **V-shaped Reversal**. Here's the reasoning:\n\n### Observations:\n1. **Sharp Decline**: There is a steep drop in price on January 23, around 15:00, forming the left side of the \"V\".\n2. **Sharp Recovery**: Following the decline, there is a rapid recovery in price, forming the right side of the \"V\".\n3. **Symmetry**: The decline and recovery are relatively symmetrical, which is characteristic of a V-shaped reversal.\n\n### Conclusion:\nThe chart exhibits a **V-shaped Reversal** pattern, indicating a sharp decline followed by a sharp recovery. This pattern often signals a potential reversal in the trend, with the price likely to continue moving upward after the recovery.",
+      "trend_report": "### Analysis of Price Interaction with Trendlines:\n1. **Support Line (Blue)**:\n   - The blue support line is sloping downward, indicating a weakening price floor.\n   - Recent candles have bounced off the support line multiple times, suggesting it is holding but under pressure.\n\n2. **Resistance Line (Red)**:\n   - The red resistance line is also sloping downward, indicating a declining price ceiling.\n   - Price has approached the resistance line but has not broken through, showing rejection at higher levels.\n\n3. **Compression**:\n   - The price is compressing between the downward-sloping support and resistance lines, forming a narrowing wedge pattern.\n\n### Prediction of Short-Term Trend:\n**Likely Trend: Downward**\n\n#### Reasoning:\n1. **Trendline Slope**:\n   - Both support and resistance lines are sloping downward, signaling bearish sentiment.\n\n2. **Price Behavior**:\n   - The price is failing to break above the resistance line, showing weakness at higher levels.\n   - The repeated testing of the support line suggests it may eventually break.\n\n3. **Signals**:\n   - The narrowing wedge pattern often resolves in the direction of the prevailing trend, which is downward in this case.\n   - The lack of strong bullish candles near resistance further supports a bearish outlook.\n\n#### Conclusion:\nExpect a downward breakout if the support line fails, with the price likely moving lower in the short term. Traders should watch for confirmation of a break below the blue support line before taking action."
+    },
+    {
+      "run": 2,
+      "window_start": "2026-01-22 16:00:00+00:00",
+      "signal_time": "2026-01-23 20:30:00+00:00",
+      "signal": "SHORT",
+      "outcome": "LONG",
+      "correct": false,
+      "pnl": -0.016283976050984268,
+      "pnl_magnitude": 0.016283976050984268,
+      "entry_price": 248.7100067138672,
+      "exit_price": 252.75999450683594,
+      "indicator_report": "The technical indicators have been computed. Here's the analysis:\n\n### 1. **Relative Strength Index (RSI)**:\n   - Current RSI: **56.12**\n   - Interpretation: RSI is approaching the overbought threshold (70). This suggests bullish momentum but may indicate a potential reversal if it continues to rise.\n\n### 2. **Moving Average Convergence Divergence (MACD)**:\n   - Current MACD: **-0.43**\n   - Current Signal Line: **-0.39**\n   - Current Histogram: **0.19**\n   - Interpretation: The MACD histogram is positive, indicating bullish momentum. However, the MACD line is still below the signal line, suggesting caution.\n\n### 3. **Rate of Change (ROC)**:\n   - Current ROC: **0.41**\n   - Interpretation: Positive ROC indicates upward momentum in price. This supports a bullish outlook.\n\n### 4. **Stochastic Oscillator**:\n   - Current %K: **75.65**\n   - Current %D: **68.44**\n   - Interpretation: The Stochastic Oscillator is nearing the overbought zone (above 80). This suggests strong bullish momentum but warns of potential exhaustion.\n\n### 5. **Williams %R**:\n   - Current Williams %R: **-5.43**\n   - Interpretation: Williams %R is in the overbought zone (above -20). This indicates that the asset may be overvalued and could face a reversal.\n\n### **Summary**:\n- The indicators collectively suggest strong bullish momentum, but caution is advised as some indicators are nearing overbought levels. A potential reversal could occur if the upward momentum weakens.\n\nWould you like to proceed with a trading decision or analyze further?",
+      "pattern_report": "Based on the provided candlestick chart, the pattern that most closely matches is the **Double Bottom** pattern. Here's the reasoning:\n\n1. **Structure**: The chart shows two distinct low points (around the same price level, near 245) with a rebound in between, forming a \"W\" shape. This is characteristic of a Double Bottom pattern.\n\n2. **Trend**: Before the Double Bottom, there is a clear downtrend, which is a prerequisite for this pattern to form. After the second bottom, the price begins to rise, indicating a potential reversal.\n\n3. **Symmetry**: The two low points are relatively symmetrical, and the rebound between them is evident.\n\n### Conclusion:\nThe chart exhibits a **Double Bottom** pattern, which typically signals a potential reversal to an upward trend. This is supported by the price recovery after the second bottom.",
+      "trend_report": "### Analysis of Price Interaction with Trendlines:\n1. **Support Line (Blue)**:\n   - The support line is sloping downward, indicating weakening support levels over time.\n   - Price briefly broke below the support line around Jan 23, 14:30, but quickly rebounded, suggesting buyers stepped in at lower levels.\n   - Recent candles are staying above the support line, showing it is holding for now.\n\n2. **Resistance Line (Red)**:\n   - The resistance line is also sloping downward, indicating lower highs and a bearish bias.\n   - Price has tested the resistance line multiple times but has failed to break above it, showing sellers are active at higher levels.\n   - The most recent candle is near the resistance line, suggesting a potential test or rejection.\n\n3. **Price Compression**:\n   - The price is compressing between the downward-sloping support and resistance lines, forming a narrowing range.\n   - This compression often precedes a breakout, but the direction is uncertain without further confirmation.\n\n---\n\n### Prediction: **Sideways to Downward**\n#### Reasoning:\n1. **Trendline Slope**:\n   - Both support and resistance lines are sloping downward, indicating a bearish bias.\n   - The downward slope of the resistance line suggests sellers are dominating.\n\n2. **Recent K-line Behavior**:\n   - Price rebounded from the support line but failed to break above the resistance line, showing indecision and bearish pressure.\n   - The narrowing range suggests consolidation, but the overall trend remains bearish due to the downward slopes.\n\n3. **Signals**:\n   - The inability to break above resistance and the downward-sloping trendlines suggest a higher likelihood of a downward breakout.\n   - If price breaks below the support line, it could accelerate downward momentum.\n\n---\n\n### Recommendation:\n- Watch for a breakout below the support line for confirmation of a downward trend.\n- If price breaks above the resistance line, it could signal a reversal to an upward trend, but this is less likely given current conditions."
+    }
+  ]
+}

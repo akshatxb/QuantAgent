@@ -1,0 +1,2628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>QuantAgent</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:        #080c10;
+  --bg1:       #0d1117;
+  --bg2:       #111820;
+  --bg3:       #16202c;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
+  --text:      #e2e8f0;
+  --text2:     #8899aa;
+  --text3:     #4a5568;
+  --accent:    #00d4aa;
+  --accent2:   #0099ff;
+  --long:      #00d4aa;
+  --short:     #ff4d6d;
+  --warn:      #f5a623;
+  --mono:      'Space Mono', monospace;
+  --sans:      'DM Sans', sans-serif;
+  --radius:    6px;
+  --radius2:   10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg1); }
+::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 2px; }
+
+/* --- Layout --- */
+.app { display: grid; grid-template-rows: 52px 1fr; height: 100vh; }
+
+/* --- Topbar --- */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--border);
+  position: relative; z-index: 100;
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 13px; font-weight: 700;
+  color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase;
+}
+.logo-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.topbar-center {
+  display: flex; align-items: center; gap: 6px;
+}
+.tab {
+  font-family: var(--mono); font-size: 11px; font-weight: 400;
+  color: var(--text3); padding: 5px 14px; border-radius: var(--radius);
+  cursor: pointer; border: 1px solid transparent; transition: all .15s;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.tab:hover { color: var(--text2); border-color: var(--border); }
+.tab.active { color: var(--accent); border-color: rgba(0,212,170,0.3); background: rgba(0,212,170,0.06); }
+
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  padding: 4px 10px; border-radius: 20px;
+  border: 1px solid var(--border); letter-spacing: 0.05em;
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); }
+.status-dot.live { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse 1.5s infinite; }
+.status-dot.running { background: var(--warn); box-shadow: 0 0 6px var(--warn); animation: pulse 0.8s infinite; }
+.btn-settings {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  padding: 5px 12px; border-radius: var(--radius);
+  border: 1px solid var(--border); cursor: pointer;
+  background: transparent; transition: all .15s; letter-spacing: 0.05em;
+}
+.btn-settings:hover { color: var(--text); border-color: var(--border2); background: var(--bg2); }
+
+/* --- Main content area --- */
+.content { display: none; height: calc(100vh - 52px); min-height: 0; }
+.content.active { display: flex; min-height: 0; }
+
+/* ======================================================
+   TAB 1: LIVE
+   ====================================================== */
+#tab-live {
+  flex-direction: row;
+  overflow: hidden;
+}
+
+/* Left control panel */
+.control-panel {
+  width: 260px; flex-shrink: 0;
+  background: var(--bg1);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  align-self: stretch;
+  min-height: 0;
+}
+.panel-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.panel-label {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px;
+}
+
+/* Asset search */
+.asset-search {
+  position: relative; margin-bottom: 8px;
+}
+.asset-search input {
+  width: 100%; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-family: var(--mono); font-size: 12px;
+  padding: 8px 10px; outline: none;
+  transition: border-color .15s;
+}
+.asset-search input:focus { border-color: var(--accent); }
+.asset-search input::placeholder { color: var(--text3); }
+
+/* Market tabs */
+.market-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.market-tab {
+  flex: 1; font-family: var(--mono); font-size: 10px;
+  padding: 5px; text-align: center; border-radius: var(--radius);
+  border: 1px solid var(--border); cursor: pointer;
+  color: var(--text3); transition: all .15s; letter-spacing: 0.05em;
+}
+.market-tab:hover { color: var(--text2); }
+.market-tab.active { color: var(--accent2); border-color: rgba(0,153,255,0.4); background: rgba(0,153,255,0.08); }
+
+/* Asset grid */
+.asset-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  max-height: 180px; overflow-y: auto;
+}
+.asset-btn {
+  font-family: var(--mono); font-size: 10px;
+  padding: 6px 8px; border-radius: var(--radius);
+  border: 1px solid var(--border); cursor: pointer;
+  color: var(--text2); background: var(--bg2);
+  transition: all .15s; text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.asset-btn:hover { border-color: var(--border2); color: var(--text); }
+.asset-btn.active { border-color: var(--accent2); color: var(--accent2); background: rgba(0,153,255,0.08); }
+.asset-btn .mkt { font-size: 8px; color: var(--text3); display: block; margin-top: 1px; }
+
+/* Timeframe selector */
+.tf-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; }
+.tf-btn {
+  font-family: var(--mono); font-size: 10px; padding: 6px 4px;
+  border-radius: var(--radius); border: 1px solid var(--border);
+  cursor: pointer; color: var(--text3); background: var(--bg2);
+  text-align: center; transition: all .15s;
+}
+.tf-btn:hover { color: var(--text2); }
+.tf-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,170,0.08); }
+
+/* Date range */
+.date-row { display: flex; flex-direction: column; gap: 6px; }
+.date-group label { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.08em; margin-bottom: 3px; display: block; }
+.date-group input {
+  width: 100%; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-family: var(--mono); font-size: 11px; padding: 6px 8px; outline: none;
+  transition: border-color .15s;
+}
+.date-group input:focus { border-color: var(--accent); }
+.date-group input::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+.checkbox-row {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px; color: var(--text3); cursor: pointer;
+}
+.checkbox-row input { accent-color: var(--accent); }
+
+/* Run buttons */
+.btn-run {
+  width: 100%; padding: 10px;
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  border-radius: var(--radius); border: none; cursor: pointer;
+  transition: all .15s; margin-bottom: 6px;
+}
+.btn-run.primary {
+  background: var(--accent); color: #000;
+}
+.btn-run.primary:hover { background: #00ebb8; }
+.btn-run.primary:disabled { background: var(--bg3); color: var(--text3); cursor: not-allowed; }
+.btn-run.secondary {
+  background: transparent; color: var(--accent2);
+  border: 1px solid rgba(0,153,255,0.4);
+}
+.btn-run.secondary:hover { background: rgba(0,153,255,0.08); }
+.btn-run.danger {
+  background: transparent; color: var(--short);
+  border: 1px solid rgba(255,77,109,0.3);
+}
+.btn-run.danger:hover { background: rgba(255,77,109,0.08); }
+
+/* Progress bar */
+.progress-wrap { margin-top: 8px; display: none; }
+.progress-wrap.visible { display: block; }
+.progress-step {
+  font-family: var(--mono); font-size: 10px; color: var(--accent);
+  margin-bottom: 4px; animation: fadeIn .3s ease;
+}
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+.progress-bar { height: 2px; background: var(--bg3); border-radius: 1px; overflow: hidden; }
+.progress-fill {
+  height: 100%; background: var(--accent);
+  transition: width .5s ease;
+  box-shadow: 0 0 6px var(--accent);
+}
+
+/* --- Main chart area --- */
+.chart-area {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; background: var(--bg);
+  min-height: 0; align-self: stretch;
+}
+.chart-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg1);
+}
+.chart-ticker {
+  font-family: var(--mono); font-size: 16px; font-weight: 700;
+  color: var(--text); letter-spacing: 0.04em;
+}
+.chart-price {
+  font-family: var(--mono); font-size: 14px; color: var(--text2);
+}
+.chart-meta {
+  display: flex; gap: 16px; align-items: center;
+}
+.chart-meta-item {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  letter-spacing: 0.06em;
+}
+.chart-meta-item span { color: var(--text2); }
+
+.chart-canvas-wrap {
+  flex: 1; position: relative; padding: 12px;
+  min-height: 0;
+}
+#priceChart { width: 100% !important; height: 100% !important; }
+
+/* Signal markers on chart legend */
+.signal-legend {
+  display: flex; gap: 16px; padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg1);
+}
+.signal-legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+}
+.signal-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* --- Right analysis panel --- */
+.analysis-panel {
+  width: 320px; flex-shrink: 0;
+  background: var(--bg1);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  align-self: stretch;
+}
+.analysis-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.analysis-title {
+  font-family: var(--mono); font-size: 11px; color: var(--text3);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.analysis-scroll { flex: 1; overflow-y: auto; min-height: 0; padding-bottom: 16px; }
+
+/* Decision card */
+.decision-card {
+  margin: 12px; padding: 14px;
+  border-radius: var(--radius2);
+  border: 1px solid var(--border);
+  background: var(--bg2);
+}
+.decision-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 20px; font-weight: 700;
+  letter-spacing: 0.1em; margin-bottom: 8px;
+}
+.decision-badge.LONG { color: var(--long); }
+.decision-badge.SHORT { color: var(--short); }
+.decision-badge.NA { color: var(--text3); }
+.decision-meta {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
+}
+.d-meta-item label {
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  letter-spacing: 0.08em; display: block; margin-bottom: 2px;
+}
+.d-meta-item span {
+  font-family: var(--mono); font-size: 11px; color: var(--text2);
+}
+.confidence-bar-wrap { margin-top: 8px; }
+.confidence-label {
+  display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  margin-bottom: 4px;
+}
+.confidence-bar { height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+.confidence-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+.justification {
+  font-size: 12px; color: var(--text2); line-height: 1.6;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* Agent report cards */
+.agent-card {
+  margin: 0 12px 8px;
+  border-radius: var(--radius2);
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  overflow: hidden;
+}
+.agent-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; cursor: pointer;
+  transition: background .15s;
+}
+.agent-card-header:hover { background: var(--bg3); }
+.agent-card-title {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 10px; color: var(--text2);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.agent-icon {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.agent-card-chevron {
+  font-size: 10px; color: var(--text3); transition: transform .2s;
+}
+.agent-card-body {
+  padding: 0 12px; max-height: 0; overflow: hidden;
+  transition: max-height .3s ease, padding .3s ease;
+}
+.agent-card-body.open { max-height: 2000px; padding: 0 12px 12px; }
+.agent-card-body p, .agent-card-body li {
+  font-size: 11px; color: var(--text2); line-height: 1.7;
+}
+.agent-card-body h1, .agent-card-body h2, .agent-card-body h3 {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin: 8px 0 4px;
+}
+.agent-card-body ul { padding-left: 14px; }
+.agent-card-body pre {
+  font-family: var(--mono); font-size: 10px; color: var(--text2);
+  white-space: pre-wrap; word-break: break-word;
+  background: var(--bg3); padding: 8px; border-radius: var(--radius);
+}
+.agent-report {
+  font-size: 11px; color: var(--text2); line-height: 1.8;
+}
+.agent-report p { margin-bottom: 6px; }
+.agent-report h1, .agent-report h2, .agent-report h3, .agent-report h4 {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin: 10px 0 4px; font-weight: 700;
+}
+.agent-report ul, .agent-report ol { padding-left: 16px; margin-bottom: 6px; }
+.agent-report li { margin-bottom: 3px; }
+.agent-report strong { color: var(--text); font-weight: 600; }
+.agent-report em { color: var(--text2); font-style: italic; }
+.agent-report hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+.agent-report code {
+  font-family: var(--mono); font-size: 10px; color: var(--accent);
+  background: var(--bg3); padding: 1px 4px; border-radius: 3px;
+}
+
+/* Chart images */
+.chart-img-wrap { margin: 0 12px 8px; }
+.chart-img-label {
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px;
+}
+.chart-img-wrap img {
+  width: 100%; border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+/* Placeholder state */
+.placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; gap: 12px; padding: 40px;
+  text-align: center;
+}
+.placeholder-icon {
+  font-family: var(--mono); font-size: 32px; color: var(--bg3);
+}
+.placeholder-text {
+  font-family: var(--mono); font-size: 11px; color: var(--text3);
+  letter-spacing: 0.06em; line-height: 1.8;
+}
+
+/* ======================================================
+   TAB 2: BACKTEST
+   ====================================================== */
+#tab-backtest {
+  flex-direction: column;
+  padding: 24px;
+  padding-bottom: 60px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+}
+.backtest-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+}
+.page-title {
+  font-family: var(--mono); font-size: 18px; font-weight: 700;
+  color: var(--text); letter-spacing: 0.04em;
+}
+.page-subtitle {
+  font-size: 12px; color: var(--text3); margin-top: 4px;
+}
+
+.backtest-config {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;
+  padding: 16px; background: var(--bg1); border: 1px solid var(--border);
+  border-radius: var(--radius2);
+}
+.config-field label {
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  letter-spacing: 0.1em; text-transform: uppercase; display: block; margin-bottom: 5px;
+}
+.config-field input, .config-field select {
+  width: 100%; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-family: var(--mono); font-size: 11px; padding: 7px 9px; outline: none;
+  transition: border-color .15s;
+}
+.config-field input:focus, .config-field select:focus { border-color: var(--accent); }
+.config-field select option { background: var(--bg2); }
+
+/* Stats grid */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;
+}
+.stat-card {
+  background: var(--bg1); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 14px;
+}
+.stat-label {
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px;
+}
+.stat-value {
+  font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--text);
+}
+.stat-value.positive { color: var(--long); }
+.stat-value.negative { color: var(--short); }
+.stat-value.neutral  { color: var(--text2); }
+
+/* Confusion matrix */
+.conf-matrix {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  max-width: 280px;
+}
+.conf-cell {
+  padding: 12px; border-radius: var(--radius); text-align: center;
+  border: 1px solid var(--border);
+}
+.conf-cell.tp { background: rgba(0,212,170,0.08); border-color: rgba(0,212,170,0.2); }
+.conf-cell.tn { background: rgba(0,212,170,0.08); border-color: rgba(0,212,170,0.2); }
+.conf-cell.fp { background: rgba(255,77,109,0.08); border-color: rgba(255,77,109,0.2); }
+.conf-cell.fn { background: rgba(255,77,109,0.08); border-color: rgba(255,77,109,0.2); }
+.conf-cell .val { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+.conf-cell .lbl { font-family: var(--mono); font-size: 9px; color: var(--text3); margin-top: 2px; }
+
+/* Backtest chart */
+.bt-chart-wrap {
+  background: var(--bg1); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 16px;
+}
+.bt-chart-title {
+  font-family: var(--mono); font-size: 11px; color: var(--text3);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;
+}
+.bt-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* Saved results list */
+.results-list {
+  background: var(--bg1); border: 1px solid var(--border);
+  border-radius: var(--radius2); overflow: hidden;
+}
+.results-list-header {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.result-row {
+  display: grid;
+  grid-template-columns: 80px 60px 70px 70px 70px 80px 1fr;
+  gap: 8px; padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 10px; color: var(--text2);
+  cursor: pointer; transition: background .1s;
+  align-items: center;
+}
+.result-row:hover { background: var(--bg2); }
+.result-row:last-child { border-bottom: none; }
+.result-row .ticker-col { color: var(--text); font-weight: 700; }
+.acc-good { color: var(--long); }
+.acc-bad  { color: var(--short); }
+.empty-state {
+  padding: 32px; text-align: center;
+  font-family: var(--mono); font-size: 11px; color: var(--text3);
+}
+
+/* ======================================================
+   TAB 3: SETTINGS
+   ====================================================== */
+#tab-settings {
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px;
+  padding-bottom: 60px;
+  width: 100%;
+  gap: 16px;
+  align-items: center;
+  flex: 1;
+  min-height: 0;
+}
+#tab-settings > * {
+  width: 100%;
+  max-width: 600px;
+  flex-shrink: 0;
+}
+.settings-section {
+  background: var(--bg1); border: 1px solid var(--border);
+  border-radius: var(--radius2); overflow: hidden;
+}
+.settings-section-title {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.settings-field {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.settings-field:last-child { border-bottom: none; }
+.settings-field label {
+  font-family: var(--mono); font-size: 10px; color: var(--text2);
+  letter-spacing: 0.06em;
+}
+.settings-field .hint {
+  font-size: 11px; color: var(--text3);
+}
+.settings-input-row { display: flex; gap: 8px; }
+.settings-input-row input {
+  flex: 1; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-family: var(--mono); font-size: 11px; padding: 7px 10px; outline: none;
+  transition: border-color .15s;
+}
+.settings-input-row input:focus { border-color: var(--accent); }
+.settings-input-row input::placeholder { color: var(--text3); }
+.btn-save {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 7px 14px; border-radius: var(--radius);
+  border: 1px solid rgba(0,212,170,0.4); background: rgba(0,212,170,0.08);
+  color: var(--accent); cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.btn-save:hover { background: rgba(0,212,170,0.16); }
+.settings-select {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-family: var(--mono); font-size: 11px; padding: 7px 10px; outline: none;
+  transition: border-color .15s; width: 100%;
+}
+.settings-select:focus { border-color: var(--accent); }
+.settings-select option { background: var(--bg2); }
+.msg-ok  { font-family: var(--mono); font-size: 10px; color: var(--long); margin-top: 4px; display: none; }
+.msg-err { font-family: var(--mono); font-size: 10px; color: var(--short); margin-top: 4px; display: none; }
+
+/* Model status badge */
+.model-status {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  padding: 8px 16px;
+}
+.model-status .badge {
+  padding: 2px 8px; border-radius: 10px; font-size: 9px;
+  border: 1px solid var(--border);
+}
+.model-status .badge.trained { border-color: rgba(0,212,170,0.4); color: var(--long); }
+.model-status .badge.untrained { border-color: rgba(90,90,90,0.4); color: var(--text3); }
+
+/* toast */
+.toast {
+  position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius2); padding: 10px 16px;
+  font-family: var(--mono); font-size: 11px; color: var(--text);
+  transform: translateY(80px); opacity: 0;
+  transition: all .3s ease; pointer-events: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.ok  { border-color: rgba(0,212,170,0.4); color: var(--long); }
+.toast.err { border-color: rgba(255,77,109,0.4); color: var(--short); }
+
+
+/* ======================================================
+   TAB 4: ABLATION
+   ====================================================== */
+#tab-ablation {
+  flex-direction: column;
+  padding: 24px;
+  padding-bottom: 60px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+}
+.variant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.variant-card {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius2);
+  padding: 16px;
+  position: relative;
+  transition: border-color .2s;
+}
+.variant-card.best {
+  border-color: rgba(0,212,170,0.5);
+  background: rgba(0,212,170,0.04);
+}
+.variant-card .best-badge {
+  position: absolute; top: 10px; right: 10px;
+  font-family: var(--mono); font-size: 8px;
+  padding: 2px 7px; border-radius: 10px;
+  background: rgba(0,212,170,0.15);
+  color: var(--accent); border: 1px solid rgba(0,212,170,0.3);
+  letter-spacing: 0.06em;
+}
+.variant-name {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  color: var(--text); margin-bottom: 4px;
+}
+.variant-desc {
+  font-size: 11px; color: var(--text3); margin-bottom: 12px; line-height: 1.5;
+}
+.variant-accuracy {
+  font-family: var(--mono); font-size: 28px; font-weight: 700;
+  margin-bottom: 4px;
+}
+.variant-stats {
+  display: flex; flex-direction: column; gap: 3px; margin-top: 8px;
+}
+.variant-stat-row {
+  display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+}
+.variant-stat-row span { color: var(--text2); }
+.lift-banner {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  padding: 14px 18px;
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius2);
+}
+.lift-item {
+  display: flex; flex-direction: column; gap: 3px;
+}
+.lift-label {
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.lift-value {
+  font-family: var(--mono); font-size: 18px; font-weight: 700;
+}
+.lift-value.pos { color: var(--long); }
+.lift-value.neg { color: var(--short); }
+.lift-value.neu { color: var(--text2); }
+.abl-chart-wrap {
+  background: var(--bg1); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 16px;
+}
+.abl-chart-title {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;
+}
+.feature-importance {
+  background: var(--bg1); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 16px;
+}
+.fi-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+}
+.fi-name {
+  font-family: var(--mono); font-size: 10px; color: var(--text2);
+  width: 140px; flex-shrink: 0;
+}
+.fi-bar-wrap { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+.fi-bar { height: 100%; border-radius: 3px; background: var(--accent2); transition: width .5s; }
+.fi-val {
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  width: 40px; text-align: right;
+}
+/* Responsive */
+@media (max-width: 900px) {
+  .analysis-panel { display: none; }
+  .control-panel { width: 220px; }
+}
+@media (max-width: 600px) {
+  .control-panel { width: 100%; height: auto; }
+  #tab-live { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== TOPBAR ===== -->
+  <header class="topbar">
+    <div class="logo">
+      <div class="logo-dot"></div>
+      QuantAgent
+    </div>
+    <nav class="topbar-center">
+      <div class="tab active" data-tab="live" onclick="switchTab('live')">Live</div>
+      <div class="tab" data-tab="backtest" onclick="switchTab('backtest')">Backtest</div>
+      <div class="tab" data-tab="ablation" onclick="switchTab('ablation')">Ablation</div>
+      <div class="tab" data-tab="settings" onclick="switchTab('settings')">Settings</div>
+    </nav>
+    <div class="topbar-right">
+      <div class="status-pill" id="statusPill">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">idle</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== TAB: LIVE ===== -->
+  <div class="content active" id="tab-live">
+
+    <!-- Control panel -->
+    <aside class="control-panel">
+
+      <div class="panel-section">
+        <div class="panel-label">Asset</div>
+        <div class="asset-search">
+          <input type="text" id="assetSearch" placeholder="Search or type symbol…" oninput="filterAssets(this.value)">
+        </div>
+        <div class="market-tabs">
+          <div class="market-tab active" data-mkt="ALL" onclick="setMarket('ALL',this)">All</div>
+          <div class="market-tab" data-mkt="US"  onclick="setMarket('US',this)">US</div>
+          <div class="market-tab" data-mkt="NSE" onclick="setMarket('NSE',this)">NSE</div>
+        </div>
+        <div class="asset-grid" id="assetGrid"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-label">Timeframe</div>
+        <div class="tf-grid">
+          <div class="tf-btn" data-tf="1m"  onclick="selectTf(this)">1m</div>
+          <div class="tf-btn" data-tf="5m"  onclick="selectTf(this)">5m</div>
+          <div class="tf-btn" data-tf="15m" onclick="selectTf(this)">15m</div>
+          <div class="tf-btn" data-tf="30m" onclick="selectTf(this)">30m</div>
+          <div class="tf-btn active" data-tf="1h"  onclick="selectTf(this)">1h</div>
+          <div class="tf-btn" data-tf="4h"  onclick="selectTf(this)">4h</div>
+          <div class="tf-btn" data-tf="1d"  onclick="selectTf(this)">1d</div>
+          <div class="tf-btn" data-tf="1wk" onclick="selectTf(this)">1w</div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-label">Date range</div>
+        <div class="date-row">
+          <div class="date-group">
+            <label>Start</label>
+            <input type="date" id="startDate">
+          </div>
+          <div class="date-group">
+            <label>End</label>
+            <input type="date" id="endDate">
+          </div>
+          <label class="checkbox-row">
+            <input type="checkbox" id="useCurrent" onchange="toggleEndDate(this)">
+            Use current time as end
+          </label>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-label">Mode</div>
+        <button class="btn-run primary" id="btnAnalyse" onclick="runAnalysis()">Run Analysis</button>
+        <button class="btn-run secondary" id="btnLiveStart" onclick="startLive()">Start Live Sim</button>
+        <button class="btn-run danger"   id="btnLiveStop" onclick="stopLive()" style="display:none">Stop Live Sim</button>
+
+        <div class="progress-wrap" id="progressWrap">
+          <div class="progress-step" id="progressStep">Initialising…</div>
+          <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- Live sim status panel -->
+      <div class="panel-section" id="sessionStats" style="display:none">
+        <div class="panel-label">Live status</div>
+
+        <!-- Current step banner -->
+        <div id="liveStepBanner" style="
+          background:var(--bg3); border:1px solid var(--border);
+          border-radius:var(--radius); padding:8px 10px; margin-bottom:10px;
+        ">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:3px">CURRENT STEP</div>
+          <div id="liveStepText" style="font-family:var(--mono);font-size:11px;color:var(--accent)">Waiting to start…</div>
+        </div>
+
+        <!-- Progress bar (always visible when live) -->
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-family:var(--mono);font-size:9px;color:var(--text3)">Pipeline progress</span>
+            <span style="font-family:var(--mono);font-size:9px;color:var(--text3)" id="liveProgressPct">0%</span>
+          </div>
+          <div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">
+            <div id="liveProgressBar" style="height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .5s ease;box-shadow:0 0 6px var(--accent)"></div>
+          </div>
+        </div>
+
+        <!-- Next cycle countdown -->
+        <div style="
+          background:var(--bg2); border:1px solid var(--border);
+          border-radius:var(--radius); padding:8px 10px; margin-bottom:10px;
+          display:flex; justify-content:space-between; align-items:center;
+        ">
+          <span style="font-family:var(--mono);font-size:9px;color:var(--text3)">Next analysis in</span>
+          <span style="font-family:var(--mono);font-size:13px;color:var(--warn);font-weight:700" id="liveCountdown">--:--</span>
+        </div>
+
+        <!-- Last signal -->
+        <div style="margin-bottom:10px">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:4px">LAST SIGNAL</div>
+          <div id="liveLastSignal" style="
+            background:var(--bg2); border:1px solid var(--border);
+            border-radius:var(--radius); padding:8px 10px;
+            font-family:var(--mono); font-size:11px; color:var(--text3);
+          ">No signal yet</div>
+        </div>
+
+        <!-- Error banner (hidden by default) -->
+        <div id="liveErrorBanner" style="
+          display:none; background:rgba(255,77,109,0.1);
+          border:1px solid rgba(255,77,109,0.3); border-radius:var(--radius);
+          padding:8px 10px; margin-bottom:10px;
+          font-family:var(--mono); font-size:10px; color:var(--short); line-height:1.6;
+        "></div>
+
+        <!-- Live accuracy card — headline metric -->
+        <div id="liveAccuracyCard" style="
+          background:var(--bg2); border:1px solid var(--border);
+          border-radius:var(--radius); padding:10px 12px; margin-bottom:10px;
+          display:flex; align-items:center; justify-content:space-between;
+        ">
+          <div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:3px">LIVE ACCURACY</div>
+            <div id="liveAccuracyValue" style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--text3)">—</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:3px">RESOLVED</div>
+            <div id="liveAccuracyResolved" style="font-family:var(--mono);font-size:14px;color:var(--text2)">0 / 0</div>
+          </div>
+        </div>
+
+        <!-- Outcome history strip -->
+        <div style="margin-bottom:10px">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:5px">RECENT OUTCOMES</div>
+          <div id="outcomeStrip" style="display:flex;gap:4px;flex-wrap:wrap;min-height:18px">
+            <span style="font-family:var(--mono);font-size:9px;color:var(--text3)">No outcomes yet</span>
+          </div>
+        </div>
+
+        <!-- Session counters -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px;text-align:center">
+            <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text)" id="sessTotal">0</div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--text3);margin-top:2px">TOTAL</div>
+          </div>
+          <div style="background:var(--bg2);border:1px solid rgba(0,212,170,0.2);border-radius:var(--radius);padding:8px;text-align:center">
+            <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--long)" id="sessLong">0</div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--text3);margin-top:2px">LONG</div>
+          </div>
+          <div style="background:var(--bg2);border:1px solid rgba(255,77,109,0.2);border-radius:var(--radius);padding:8px;text-align:center">
+            <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--short)" id="sessShort">0</div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--text3);margin-top:2px">SHORT</div>
+          </div>
+        </div>
+
+      </div>
+
+    </aside>
+
+    <!-- Chart area -->
+    <main class="chart-area">
+      <div class="chart-topbar">
+        <div>
+          <div class="chart-ticker" id="chartTicker">—</div>
+          <div class="chart-price" id="chartPrice"></div>
+        </div>
+        <div class="chart-meta">
+          <div class="chart-meta-item">Interval <span id="chartTf">—</span></div>
+          <div class="chart-meta-item">Candles <span id="chartCandles">—</span></div>
+          <div class="chart-meta-item">Last update <span id="chartUpdated">—</span></div>
+        </div>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="priceChart"></canvas>
+        <!-- Empty state -->
+        <div class="placeholder" id="chartPlaceholder">
+          <div class="placeholder-icon">[ ]</div>
+          <div class="placeholder-text">Select an asset and run analysis<br>or start the live simulation</div>
+        </div>
+      </div>
+      <div class="signal-legend">
+        <div class="signal-legend-item"><div class="signal-dot" style="background:var(--long)"></div>LONG signal</div>
+        <div class="signal-legend-item"><div class="signal-dot" style="background:var(--short)"></div>SHORT signal</div>
+        <div class="signal-legend-item"><div class="signal-dot" style="background:var(--warn)"></div>Flipped by model</div>
+      </div>
+    </main>
+
+    <!-- Analysis panel -->
+    <aside class="analysis-panel">
+      <div class="analysis-header">
+        <div class="analysis-title">Analysis</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text3)" id="analysisTime"></div>
+      </div>
+      <div class="analysis-scroll" id="analysisScroll">
+        <div class="placeholder" style="height:300px">
+          <div class="placeholder-icon">{ }</div>
+          <div class="placeholder-text">Results will appear here</div>
+        </div>
+      </div>
+    </aside>
+
+  </div><!-- /tab-live -->
+
+  <!-- ===== TAB: BACKTEST ===== -->
+  <div class="content" id="tab-backtest">
+
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+      <div>
+        <div class="page-title">Backtest Engine</div>
+        <div class="page-subtitle">Run QuantAgent over historical data and measure accuracy vs a random baseline</div>
+      </div>
+    </div>
+
+    <!-- Config -->
+    <div class="backtest-config" id="btConfig">
+      <div class="config-field">
+        <label>Ticker</label>
+        <input type="text" id="btTicker" placeholder="e.g. AAPL, RELIANCE" value="AAPL">
+      </div>
+      <div class="config-field">
+        <label>Interval</label>
+        <select id="btInterval">
+          <option value="15m">15m</option>
+          <option value="1h" selected>1h</option>
+          <option value="4h">4h</option>
+          <option value="1d">1d</option>
+        </select>
+      </div>
+      <div class="config-field">
+        <label>Start date</label>
+        <input type="date" id="btStart">
+      </div>
+      <div class="config-field">
+        <label>End date</label>
+        <input type="date" id="btEnd">
+      </div>
+      <div class="config-field">
+        <label>Max runs</label>
+        <input type="number" id="btMaxRuns" value="20" min="5" max="100">
+      </div>
+      <div class="config-field" style="align-self:flex-end">
+        <label>&nbsp;</label>
+        <button class="btn-run primary" id="btnRunBacktest" onclick="runBacktest()" style="margin:0">Run Backtest</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="btResults" style="display:none; flex-direction:column; gap:16px;">
+
+      <div class="stats-grid" id="btStatsGrid"></div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; flex-wrap:wrap; min-height:0;">
+        <div class="bt-chart-wrap">
+          <div class="bt-chart-title">P&amp;L curve</div>
+          <div style="position:relative;height:180px"><canvas id="btPnlChart"></canvas></div>
+        </div>
+        <div class="bt-chart-wrap">
+          <div class="bt-chart-title">Rolling accuracy (10-signal window)</div>
+          <div style="position:relative;height:180px"><canvas id="btAccChart"></canvas></div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; min-height:0;">
+        <div>
+          <div class="bt-chart-title" style="margin-bottom:8px">Confusion matrix</div>
+          <div class="conf-matrix" id="btConfMatrix"></div>
+        </div>
+        <div>
+          <div class="bt-chart-title" style="margin-bottom:8px">Agent vs baseline</div>
+          <div style="position:relative;height:140px"><canvas id="btCompareChart"></canvas></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Saved results -->
+    <div class="results-list" id="btResultsList">
+      <div class="results-list-header">Saved backtest results</div>
+      <div id="btResultsBody">
+        <div class="empty-state">No backtest results yet — run your first backtest above</div>
+      </div>
+    </div>
+
+  </div><!-- /tab-backtest -->
+
+  <!-- ===== TAB: SETTINGS ===== -->
+  <div class="content" id="tab-settings">
+
+    <div class="page-title" style="margin-bottom:4px">Settings</div>
+    <div class="page-subtitle" style="margin-bottom:8px">Configure your LLM provider and credentials</div>
+
+    <!-- Provider -->
+    <div class="settings-section">
+      <div class="settings-section-title">LLM Provider</div>
+      <div class="settings-field">
+        <label>Active provider</label>
+        <select class="settings-select" id="providerSelect" onchange="handleProviderChange(this.value)">
+          <option value="azure">Azure OpenAI (recommended)</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="qwen">Qwen / DashScope</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Azure config -->
+    <div class="settings-section" id="azureSection">
+      <div class="settings-section-title">Azure OpenAI</div>
+      <div class="settings-field">
+        <label>API Key</label>
+        <div class="hint">From Azure AI Foundry → Keys and Endpoint</div>
+        <div class="settings-input-row">
+          <input type="password" id="azureKey" placeholder="Your Azure OpenAI API key">
+          <button class="btn-save" onclick="saveAzureKey()">Save</button>
+        </div>
+        <div class="msg-ok" id="azureKeyOk">Saved</div>
+        <div class="msg-err" id="azureKeyErr"></div>
+      </div>
+      <div class="settings-field">
+        <label>Endpoint</label>
+        <div class="hint">e.g. https://YOUR-RESOURCE.openai.azure.com/</div>
+        <div class="settings-input-row">
+          <input type="text" id="azureEndpoint" placeholder="https://...openai.azure.com/">
+          <button class="btn-save" onclick="saveAzureConfig()">Save</button>
+        </div>
+      </div>
+      <div class="settings-field">
+        <label>Deployment name</label>
+        <div class="settings-input-row">
+          <input type="text" id="azureDeployment" placeholder="gpt-4o">
+        </div>
+      </div>
+      <div class="settings-field">
+        <label>API version</label>
+        <div class="settings-input-row">
+          <input type="text" id="azureApiVersion" placeholder="2024-02-15-preview">
+        </div>
+        <div class="msg-ok" id="azureConfigOk">Saved</div>
+        <div class="msg-err" id="azureConfigErr"></div>
+      </div>
+    </div>
+
+    <!-- Anthropic config -->
+    <div class="settings-section" id="anthropicSection" style="display:none">
+      <div class="settings-section-title">Anthropic</div>
+      <div class="settings-field">
+        <label>API Key</label>
+        <div class="settings-input-row">
+          <input type="password" id="anthropicKey" placeholder="sk-ant-…">
+          <button class="btn-save" onclick="saveProviderKey('anthropic','anthropicKey','anthropicMsg')">Save</button>
+        </div>
+        <div class="msg-ok" id="anthropicMsg"></div>
+      </div>
+    </div>
+
+    <!-- Qwen config -->
+    <div class="settings-section" id="qwenSection" style="display:none">
+      <div class="settings-section-title">Qwen / DashScope</div>
+      <div class="settings-field">
+        <label>API Key</label>
+        <div class="settings-input-row">
+          <input type="password" id="qwenKey" placeholder="sk-…">
+          <button class="btn-save" onclick="saveProviderKey('qwen','qwenKey','qwenMsg')">Save</button>
+        </div>
+        <div class="msg-ok" id="qwenMsg"></div>
+      </div>
+    </div>
+
+    <!-- Prediction model -->
+    <div class="settings-section">
+      <div class="settings-section-title">Prediction Model</div>
+      <div class="model-status">
+        <span id="modelStatusBadge" class="badge untrained">not trained</span>
+        <span id="modelStatusText">Train the model from a backtest result to enable signal refinement</span>
+      </div>
+      <div class="settings-field">
+        <label>Train from saved backtest</label>
+        <div class="settings-input-row">
+          <select class="settings-select" id="trainSelect" style="width:auto;flex:1">
+            <option value="">Select a backtest result…</option>
+          </select>
+          <button class="btn-save" onclick="trainModel()">Train</button>
+        </div>
+        <div class="msg-ok" id="trainOk"></div>
+        <div class="msg-err" id="trainErr"></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-settings -->
+
+
+  <!-- ===== TAB: ABLATION ===== -->
+  <div class="content" id="tab-ablation">
+
+    <div>
+      <div class="page-title">Ablation Study</div>
+      <div class="page-subtitle">Compare QuantAgent variants against each other and a random baseline</div>
+    </div>
+
+    <!-- Config -->
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+      <div class="config-field" style="flex:1; min-width:220px;">
+        <label style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:5px;">Backtest result to analyse</label>
+        <select class="settings-select" id="ablSelect">
+          <option value="">Select a backtest result…</option>
+        </select>
+      </div>
+      <button class="btn-run primary" id="btnRunAbl" onclick="runAblation()" style="width:160px;margin:0">Run Ablation</button>
+    </div>
+
+    <!-- Lift banner -->
+    <div class="lift-banner" id="ablLiftBanner" style="display:none">
+      <div class="lift-item">
+        <div class="lift-label">Agent vs random</div>
+        <div class="lift-value" id="ablLiftRandom">—</div>
+      </div>
+      <div class="lift-item">
+        <div class="lift-label">Agent vs indicators-only</div>
+        <div class="lift-value" id="ablLiftInd">—</div>
+      </div>
+      <div class="lift-item">
+        <div class="lift-label">Best variant</div>
+        <div class="lift-value neu" id="ablBestVariant">—</div>
+      </div>
+      <div class="lift-item">
+        <div class="lift-label">Signals analysed</div>
+        <div class="lift-value neu" id="ablNRecords">—</div>
+      </div>
+    </div>
+
+    <!-- Variant cards -->
+    <div class="variant-grid" id="ablVariantGrid"></div>
+
+    <!-- Charts -->
+    <div id="ablCharts" style="display:none; grid-template-columns:1fr 1fr; gap:16px; min-height:0;">
+      <div class="abl-chart-wrap">
+        <div class="abl-chart-title">Accuracy comparison</div>
+        <div style="position:relative;height:220px"><canvas id="ablAccChart"></canvas></div>
+      </div>
+      <div class="abl-chart-wrap">
+        <div class="abl-chart-title">Sharpe ratio comparison</div>
+        <div style="position:relative;height:220px"><canvas id="ablSharpeChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Feature importance (if prediction layer trained) -->
+    <div class="feature-importance" id="ablFeatures" style="display:none">
+      <div class="abl-chart-title">Prediction layer — feature importance</div>
+      <div id="ablFiRows"></div>
+    </div>
+
+    <!-- Saved ablation results -->
+    <div class="results-list" id="ablResultsList">
+      <div class="results-list-header">Saved ablation results</div>
+      <div id="ablResultsBody">
+        <div class="empty-state">No ablation results yet</div>
+      </div>
+    </div>
+
+  </div><!-- /tab-ablation -->
+
+</div><!-- /app -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  selectedAsset: null,
+  selectedTf: '1h',
+  allAssets: [],
+  currentMarket: 'ALL',
+  priceChart: null,
+  btPnlChart: null,
+  btAccChart: null,
+  btCompareChart: null,
+  liveEventSource: null,
+  signalHistory: [],   // [{time, close, decision, flipped}]
+  isLive: false,
+  isAnalysing: false,
+  isBacktesting: false,
+  pollInterval: 300,
+  analysisProgressTimer: null,
+  countdownTimer: null,
+};
+
+const PROGRESS_STEPS = {
+  fetching:   { label: 'Fetching market data…',    pct: 10 },
+  charting:   { label: 'Generating charts…',        pct: 25 },
+  indicators: { label: 'Running indicator agent…',  pct: 40 },
+  pattern:    { label: 'Running pattern agent…',    pct: 60 },
+  trend:      { label: 'Running trend agent…',      pct: 75 },
+  decision:   { label: 'Running decision maker…',   pct: 88 },
+  prediction: { label: 'Applying prediction layer…',pct: 95 },
+  done:       { label: 'Analysis complete',          pct: 100 },
+};
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  initDates();
+  loadAssets();
+  loadBacktestResults();
+  loadModelStatus();
+
+  // Restore last used settings
+  const savedTf = localStorage.getItem('qa_tf') || '1h';
+  document.querySelector(`[data-tf="${savedTf}"]`)?.click();
+
+  const savedProvider = localStorage.getItem('qa_provider') || 'azure';
+  document.getElementById('providerSelect').value = savedProvider;
+  // Show/hide correct settings sections without firing API call
+  showProviderSections(savedProvider);
+});
+
+function initDates() {
+  const now   = new Date();
+  const ago30 = new Date(now - 30 * 86400000);
+  document.getElementById('startDate').value = fmtDate(ago30);
+  document.getElementById('endDate').value   = fmtDate(now);
+
+  const btStart = new Date(now - 60 * 86400000);
+  document.getElementById('btStart').value = fmtDate(btStart);
+  document.getElementById('btEnd').value   = fmtDate(now);
+}
+
+function fmtDate(d) {
+  return d.toISOString().split('T')[0];
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.content').forEach(c => c.classList.toggle('active', c.id === `tab-${name}`));
+  if (name === 'backtest') loadBacktestResults();
+  if (name === 'settings') { loadModelStatus(); loadTrainSelect(); }
+  if (name === 'ablation')  { loadAblationSelect(); loadAblationResults(); }
+}
+
+// ============================================================
+// ASSET LOADING
+// ============================================================
+async function loadAssets() {
+  try {
+    const res  = await fetch('/api/assets');
+    const data = await res.json();
+    state.allAssets = data.assets || [];
+    renderAssets(state.allAssets);
+
+    // Restore previously selected asset
+    const savedAsset = localStorage.getItem('qa_asset');
+    if (savedAsset) {
+      const btn = document.querySelector(`[data-code="${savedAsset}"]`);
+      if (btn) {
+        selectAsset(savedAsset, btn);
+      } else {
+        // Asset not in catalogue — select first available
+        const first = document.querySelector('.asset-btn');
+        if (first) selectAsset(first.dataset.code, first);
+      }
+    } else {
+      // No saved asset — select first one automatically
+      const first = document.querySelector('.asset-btn');
+      if (first) selectAsset(first.dataset.code, first);
+    }
+  } catch(e) { console.error('Failed to load assets', e); }
+}
+
+function renderAssets(assets) {
+  const grid = document.getElementById('assetGrid');
+  grid.innerHTML = '';
+  const filtered = assets.filter(a => {
+    if (state.currentMarket === 'ALL') return true;
+    return a.market === state.currentMarket;
+  });
+  const query = document.getElementById('assetSearch').value.toLowerCase();
+  const shown  = query
+    ? filtered.filter(a => a.code.toLowerCase().includes(query) || a.name.toLowerCase().includes(query))
+    : filtered;
+
+  shown.forEach(a => {
+    const btn = document.createElement('div');
+    btn.className = 'asset-btn' + (state.selectedAsset === a.code ? ' active' : '');
+    btn.dataset.code = a.code;
+    btn.dataset.market = a.market;
+    btn.innerHTML = `${a.code}<span class="mkt">${a.market}</span>`;
+    btn.onclick = () => selectAsset(a.code, btn);
+    grid.appendChild(btn);
+  });
+}
+
+function filterAssets(q) { renderAssets(state.allAssets); }
+
+function setMarket(mkt, el) {
+  state.currentMarket = mkt;
+  document.querySelectorAll('.market-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderAssets(state.allAssets);
+}
+
+function selectAsset(code, el) {
+  state.selectedAsset = code;
+  document.querySelectorAll('.asset-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  localStorage.setItem('qa_asset', code);
+}
+
+function selectTf(el) {
+  state.selectedTf = el.dataset.tf;
+  document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  localStorage.setItem('qa_tf', state.selectedTf);
+}
+
+function toggleEndDate(cb) {
+  document.getElementById('endDate').disabled = cb.checked;
+}
+
+// ============================================================
+// PRICE CHART
+// ============================================================
+function initPriceChart() {
+  const ctx = document.getElementById('priceChart').getContext('2d');
+  if (state.priceChart) state.priceChart.destroy();
+  state.priceChart = new Chart(ctx, {
+    type: 'bar',
+    data: { datasets: [
+      {
+        label: 'Price',
+        data: [],
+        type: 'bar',
+        backgroundColor: ctx => {
+          const d = ctx.raw;
+          if (!d) return '#4a5568';
+          return d.c >= d.o ? 'rgba(0,212,170,0.8)' : 'rgba(255,77,109,0.8)';
+        },
+        borderColor: ctx => {
+          const d = ctx.raw;
+          if (!d) return '#4a5568';
+          return d.c >= d.o ? '#00d4aa' : '#ff4d6d';
+        },
+        borderWidth: 1,
+        borderSkipped: false,
+      },
+      {
+        label: 'LONG',
+        data: [],
+        type: 'scatter',
+        pointStyle: 'triangle',
+        pointRadius: 8,
+        pointBackgroundColor: '#00d4aa',
+        showLine: false,
+      },
+      {
+        label: 'SHORT',
+        data: [],
+        type: 'scatter',
+        pointStyle: 'triangle',
+        rotation: 180,
+        pointRadius: 8,
+        pointBackgroundColor: '#ff4d6d',
+        showLine: false,
+      },
+    ]},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const d = ctx.raw;
+              if (d && d.o !== undefined) {
+                return [`O: ${d.o}  H: ${d.h}  L: ${d.l}  C: ${d.c}`];
+              }
+              return [`${ctx.dataset.label}: ${ctx.parsed.y}`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#4a5568', font: { family: 'Space Mono', size: 9 }, maxRotation: 0, maxTicksLimit: 8 },
+        },
+        y: {
+          position: 'right',
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#4a5568', font: { family: 'Space Mono', size: 9 } },
+        }
+      }
+    }
+  });
+}
+
+function updatePriceChart(ohlcv, signals) {
+  if (!state.priceChart) initPriceChart();
+  document.getElementById('chartPlaceholder').style.display = 'none';
+
+  const labels   = ohlcv.datetime.map(d => d.slice(5,16));
+  const barData  = ohlcv.datetime.map((_, i) => ({
+    x: labels[i], o: ohlcv.open[i], h: ohlcv.high[i], l: ohlcv.low[i], c: ohlcv.close[i],
+    y: [ohlcv.open[i], ohlcv.close[i]]   // bar chart uses min/max of open/close
+  }));
+
+  // Rebuild bar extents properly for candlestick look
+  const candles = ohlcv.datetime.map((_, i) => ({
+    x: labels[i],
+    y: [Math.min(ohlcv.open[i], ohlcv.close[i]), Math.max(ohlcv.open[i], ohlcv.close[i])],
+    o: ohlcv.open[i], h: ohlcv.high[i], l: ohlcv.low[i], c: ohlcv.close[i],
+  }));
+
+  const longPts  = signals.filter(s => s.decision === 'LONG' && !s.flipped)
+    .map(s => ({ x: s.label, y: s.low * 0.998 }));
+  const shortPts = signals.filter(s => s.decision === 'SHORT' && !s.flipped)
+    .map(s => ({ x: s.label, y: s.high * 1.002 }));
+
+  state.priceChart.data.labels = labels;
+  state.priceChart.data.datasets[0].data = candles;
+  state.priceChart.data.datasets[1].data = longPts;
+  state.priceChart.data.datasets[2].data = shortPts;
+  state.priceChart.update('none');
+
+  // Update topbar meta
+  document.getElementById('chartCandles').textContent = ohlcv.datetime.length;
+  document.getElementById('chartUpdated').textContent = new Date().toLocaleTimeString();
+}
+
+// ============================================================
+// SINGLE ANALYSIS RUN
+// ============================================================
+async function runAnalysis() {
+  if (!state.selectedAsset) { toast('Select an asset first', 'err'); return; }
+  if (state.isAnalysing)    { toast('Analysis already running', 'err'); return; }
+  if (state.isLive)         { toast('Stop the live simulation before running a manual analysis', 'err'); return; }
+
+  const startDate = document.getElementById('startDate').value;
+  const endDate   = document.getElementById('useCurrent').checked
+    ? fmtDate(new Date())
+    : document.getElementById('endDate').value;
+
+  if (!startDate || !endDate) { toast('Set a date range first', 'err'); return; }
+
+  state.isAnalysing = true;
+  setStatus('running', 'analysing');
+  showProgress(true);
+  setProgress('fetching');
+  document.getElementById('btnAnalyse').disabled = true;
+  document.getElementById('btnLiveStart').disabled = true;
+  // Animate progress through expected steps since backend doesn't stream for single analysis
+  state.analysisProgressTimer = animateAnalysisProgress();
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        data_source: 'live',
+        asset: state.selectedAsset,
+        timeframe: state.selectedTf,
+        start_date: startDate,
+        end_date: endDate,
+        start_time: '00:00',
+        end_time:   '23:59',
+        use_current_time: document.getElementById('useCurrent').checked,
+      })
+    });
+    const data = await res.json();
+    setProgress('done');
+
+    if (data.error) {
+      toast(data.error, 'err');
+      setStatus('', 'idle');
+    } else {
+      renderAnalysis(data);
+      setStatus('live', 'ready');
+      // Build minimal ohlcv for chart — use single signal at end
+      updateChartFromAnalysis(data);
+    }
+  } catch(e) {
+    toast('Request failed: ' + e.message, 'err');
+    setStatus('', 'idle');
+  } finally {
+    state.isAnalysing = false;
+    if (state.analysisProgressTimer) { clearInterval(state.analysisProgressTimer); state.analysisProgressTimer = null; }
+    showProgress(false);
+    document.getElementById('btnAnalyse').disabled = false;
+    document.getElementById('btnLiveStart').disabled = false;
+  }
+}
+
+function updateChartFromAnalysis(data) {
+  // Just update the header — no extra API call needed
+  document.getElementById('chartTicker').textContent = state.selectedAsset || '—';
+  document.getElementById('chartTf').textContent     = state.selectedTf;
+}
+
+// ============================================================
+// ANALYSIS PANEL RENDERER
+// ============================================================
+function renderAnalysis(data) {
+  const dec      = data.final_decision || {};
+  const pred     = data.prediction     || {};
+  const decision = pred.decision || dec.decision || 'N/A';
+  const conf     = pred.confidence ? (pred.confidence * 100).toFixed(0) : null;
+  const flipped  = pred.was_flipped;
+  const rr       = dec.risk_reward_ratio || 'N/A';
+  const horizon  = dec.forecast_horizon  || 'N/A';
+  const just     = dec.justification     || '';
+
+  document.getElementById('analysisTime').textContent = new Date().toLocaleTimeString();
+
+  const confColor = decision === 'LONG' ? 'var(--long)' : decision === 'SHORT' ? 'var(--short)' : 'var(--text3)';
+
+  let html = `
+    <div class="decision-card">
+      <div class="decision-badge ${decision}">${decision}${flipped ? ' <span style="font-size:10px;color:var(--warn)">↻</span>' : ''}</div>
+      <div class="decision-meta">
+        <div class="d-meta-item">
+          <label>Forecast</label>
+          <span>${horizon}</span>
+        </div>
+        <div class="d-meta-item">
+          <label>Risk / Reward</label>
+          <span>${rr}</span>
+        </div>
+        ${(pred.model_used && pred.was_flipped) ? `
+        <div class="d-meta-item">
+          <label>Raw signal</label>
+          <span>${pred.raw_decision || '—'}</span>
+        </div>
+        <div class="d-meta-item">
+          <label>Flipped by model</label>
+          <span style="color:var(--warn)">yes</span>
+        </div>` : ''}
+      </div>
+      ${(pred.model_used && conf && conf != 50) ? `
+      <div class="confidence-bar-wrap">
+        <div class="confidence-label"><span>Model confidence</span><span>${conf}%</span></div>
+        <div class="confidence-bar">
+          <div class="confidence-fill" style="width:${conf}%;background:${confColor}"></div>
+        </div>
+      </div>` : ''}
+      <div class="justification">${just}</div>
+    </div>
+  `;
+
+  // Agent cards
+  const agents = [
+    { key: 'technical_indicators', label: 'Indicator Agent', color: '#0099ff' },
+    { key: 'pattern_analysis',     label: 'Pattern Agent',   color: '#f5a623' },
+    { key: 'trend_analysis',       label: 'Trend Agent',     color: '#a855f7' },
+  ];
+
+  agents.forEach(a => {
+    const content = data[a.key] || '';
+    if (!content) return;
+    html += `
+      <div class="agent-card">
+        <div class="agent-card-header" onclick="toggleCard(this)">
+          <div class="agent-card-title">
+            <div class="agent-icon" style="background:${a.color}"></div>
+            ${a.label}
+          </div>
+          <div class="agent-card-chevron">▼</div>
+        </div>
+        <div class="agent-card-body">
+          <div class="agent-report">${renderMarkdown(content)}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  // Chart images
+  if (data.pattern_chart) {
+    html += `
+      <div class="chart-img-wrap">
+        <div class="chart-img-label">Pattern chart</div>
+        <img src="data:image/png;base64,${data.pattern_chart}" alt="Pattern chart">
+      </div>`;
+  }
+  if (data.trend_chart) {
+    html += `
+      <div class="chart-img-wrap">
+        <div class="chart-img-label">Trend chart</div>
+        <img src="data:image/png;base64,${data.trend_chart}" alt="Trend chart">
+      </div>`;
+  }
+
+  document.getElementById('analysisScroll').innerHTML = html;
+
+  // Update chart header
+  document.getElementById('chartTicker').textContent = state.selectedAsset || '—';
+  document.getElementById('chartTf').textContent     = state.selectedTf;
+
+  // Store signal for chart overlay
+  const signalEntry = {
+    decision, flipped,
+    time: new Date().toISOString(),
+    label: new Date().toLocaleTimeString(),
+  };
+  state.signalHistory.push(signalEntry);
+}
+
+function toggleCard(header) {
+  const body    = header.nextElementSibling;
+  const chevron = header.querySelector('.agent-card-chevron');
+  body.classList.toggle('open');
+  chevron.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+
+// ============================================================
+// LIVE SIMULATION
+// ============================================================
+async function startLive() {
+  if (!state.selectedAsset) {
+    toast('Select an asset first', 'err');
+    // Also flash the asset section so user knows where to look
+    const grid = document.getElementById('assetGrid');
+    if (grid) { grid.style.outline = '1px solid var(--short)'; setTimeout(() => grid.style.outline = '', 2000); }
+    return;
+  }
+  if (state.isAnalysing)   { toast('Wait for the current analysis to finish first', 'err'); return; }
+  if (state.isBacktesting) { toast('Stop the backtest before starting live sim', 'err'); return; }
+
+  try {
+    const res  = await fetch('/api/live/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker: state.selectedAsset, interval: state.selectedTf })
+    });
+    const data = await res.json();
+    if (data.error) { toast(data.error, 'err'); return; }
+
+    state.isLive = true;
+    document.getElementById('btnLiveStart').style.display = 'none';
+    document.getElementById('btnLiveStop').style.display  = 'block';
+    document.getElementById('sessionStats').style.display = 'block';
+    document.getElementById('chartTicker').textContent = state.selectedAsset;
+    document.getElementById('chartTf').textContent     = state.selectedTf;
+    hideLiveError();
+    // Show immediate feedback — don't wait for SSE
+    setStatus('running', 'starting…');
+    setLiveStep('Connecting to live stream…', 5);
+    connectSSE();
+    toast('Live simulation started', 'ok');
+  } catch(e) {
+    toast('Failed to start live sim: ' + e.message, 'err');
+  }
+}
+
+async function stopLive() {
+  try { await fetch('/api/live/stop', { method: 'POST' }); } catch(e) {}
+  state.isLive = false;
+  state.signalHistory = [];
+  stopCountdown();
+  if (state.liveEventSource) { state.liveEventSource.close(); state.liveEventSource = null; }
+  document.getElementById('btnLiveStart').style.display = 'block';
+  document.getElementById('btnLiveStop').style.display  = 'none';
+  document.getElementById('sessionStats').style.display = 'none';
+  document.getElementById('sessTotal').textContent  = '0';
+  document.getElementById('sessLong').textContent   = '0';
+  document.getElementById('sessShort').textContent  = '0';
+  document.getElementById('liveLastSignal').innerHTML = 'No signal yet';
+  const accEl = document.getElementById('liveAccuracyValue');
+  const resEl = document.getElementById('liveAccuracyResolved');
+  const strip = document.getElementById('outcomeStrip');
+  if (accEl) { accEl.textContent = '—'; accEl.style.color = 'var(--text3)'; }
+  if (resEl) resEl.textContent = '0 / 0';
+  if (strip) strip.innerHTML = '<span style="font-family:var(--mono);font-size:9px;color:var(--text3)">No outcomes yet</span>';
+  setLiveStep('Simulation stopped', 0);
+  hideLiveError();
+  showProgress(false);
+  setStatus('', 'idle');
+  toast('Live simulation stopped', 'ok');
+}
+
+function connectSSE() {
+  if (state.liveEventSource) state.liveEventSource.close();
+  state.liveEventSource = new EventSource('/api/live/stream');
+
+  state.liveEventSource.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    handleSSEEvent(msg.type, msg.payload);
+  };
+  state.liveEventSource.onerror = () => {
+    if (state.isLive && document.getElementById('btnLiveStop').style.display !== 'none') {
+      setTimeout(() => { if (state.isLive) connectSSE(); }, 3000);
+    }
+  };
+}
+
+function handleSSEEvent(type, payload) {
+
+  if (type === 'status') {
+    if (payload.state === 'connected') {
+      // SSE stream connected — update step to show we're live
+      setStatus('live', 'live');
+      setLiveStep('Connected — first analysis starting…', 5);
+    }
+    if (payload.state === 'started') {
+      setStatus('live', 'live');
+      setLiveStep('Pipeline active — first analysis starting…', 0);
+      state.pollInterval = payload.poll_every_seconds || 300;
+      startCountdown(state.pollInterval);
+    }
+    if (payload.state === 'stopped') {
+      setStatus('', 'idle');
+      setLiveStep('Simulation stopped', 0);
+      stopCountdown();
+    }
+    if (payload.state === 'error') {
+      setStatus('', 'error');
+      setLiveStep('Error: ' + payload.message, 0);
+      toast(payload.message, 'err');
+    }
+    if (payload.state === 'waiting') {
+      setStatus('', 'error');
+      const msg = payload.message || 'No data returned for this ticker/timeframe.';
+      setLiveStep('No data: ' + msg, 0);
+      showLiveError(msg);
+    }
+  }
+
+  if (type === 'progress') {
+    const step = PROGRESS_STEPS[payload.step];
+    if (step) {
+      setLiveStep(step.label, step.pct);
+      setProgress(payload.step);
+      showProgress(payload.step !== 'done');
+      if (payload.step !== 'done') setStatus('running', payload.step + '…');
+      else {
+        setStatus('live', 'live');
+        setLiveStep('Analysis complete — next cycle in ' + formatSecs(state.pollInterval), 100);
+        startCountdown(state.pollInterval);
+      }
+    }
+  }
+
+  if (type === 'tick') {
+    document.getElementById('chartPrice').textContent =
+      payload.close.toLocaleString() + ' · ' + payload.time.slice(0,16);
+    document.getElementById('chartUpdated').textContent = new Date().toLocaleTimeString();
+    // tick means a new cycle just started
+    setLiveStep('Fetching latest candles…', 10);
+    stopCountdown();
+  }
+
+  if (type === 'signal') {
+    renderAnalysis({
+      final_decision:       payload.raw_decision,
+      prediction:           payload.prediction,
+      technical_indicators: payload.indicator_report,
+      pattern_analysis:     payload.pattern_report,
+      trend_analysis:       payload.trend_report,
+      pattern_chart:        payload.pattern_chart,
+      trend_chart:          payload.trend_chart,
+    });
+
+    if (payload.ohlcv) {
+      const sig = payload.prediction || payload.raw_decision || {};
+      const dec = (sig.decision || '').toUpperCase();
+      const lastClose = payload.ohlcv.close.at(-1);
+      const lastHigh  = payload.ohlcv.high.at(-1);
+      const lastLow   = payload.ohlcv.low.at(-1);
+      const label     = payload.ohlcv.datetime.at(-1).slice(5,16);
+
+      state.signalHistory.push({
+        decision: dec, flipped: sig.was_flipped,
+        label, close: lastClose, high: lastHigh, low: lastLow,
+      });
+      updatePriceChart(payload.ohlcv, state.signalHistory);
+
+      // Update last signal badge
+      const color = dec === 'LONG' ? 'var(--long)' : dec === 'SHORT' ? 'var(--short)' : 'var(--text2)';
+      const rr    = (payload.raw_decision || {}).risk_reward_ratio || 'N/A';
+      document.getElementById('liveLastSignal').innerHTML =
+        '<span style="color:' + color + ';font-weight:700;font-size:14px">' + dec + '</span>' +
+        '<span style="color:var(--text3);margin-left:8px">R:R ' + rr + '</span>' +
+        '<span style="color:var(--text3);margin-left:8px;font-size:9px">' + new Date().toLocaleTimeString() + '</span>';
+    }
+
+    document.getElementById('sessTotal').textContent  = state.signalHistory.length;
+    document.getElementById('sessLong').textContent   = state.signalHistory.filter(s => s.decision === 'LONG').length;
+    document.getElementById('sessShort').textContent  = state.signalHistory.filter(s => s.decision === 'SHORT').length;
+
+    // Show pending outcome indicator on chart marker
+    updateOutcomeMarkers();
+  }
+
+  if (type === 'accuracy') {
+    // A past signal outcome has been resolved
+    const acc    = payload.live_accuracy_pct;
+    const total  = payload.resolved_signals;
+    const correct = payload.correct_signals;
+
+    // Update accuracy card
+    const accEl = document.getElementById('liveAccuracyValue');
+    const resEl = document.getElementById('liveAccuracyResolved');
+    if (accEl) {
+      accEl.textContent = acc !== null ? acc.toFixed(1) + '%' : '—';
+      accEl.style.color = acc === null ? 'var(--text3)'
+                        : acc >= 55   ? 'var(--long)'
+                        : acc >= 45   ? 'var(--warn)'
+                        : 'var(--short)';
+    }
+    if (resEl) resEl.textContent = correct + ' / ' + total;
+
+    // Add dot to outcome strip
+    addOutcomeDot(payload.correct, payload.decision, payload.pnl_pct);
+
+    // Toast the result
+    const pnl = payload.pnl_pct >= 0 ? '+' + payload.pnl_pct.toFixed(2) : payload.pnl_pct.toFixed(2);
+    toast(
+      (payload.correct ? 'CORRECT' : 'WRONG') +
+      ' — ' + payload.decision +
+      ' ' + pnl + '%' +
+      ' | Live acc: ' + (acc !== null ? acc.toFixed(1) + '%' : '—'),
+      payload.correct ? 'ok' : 'err'
+    );
+  }
+}
+
+function addOutcomeDot(correct, decision, pnl) {
+  const strip = document.getElementById('outcomeStrip');
+  if (!strip) return;
+  // Remove placeholder text if present
+  const placeholder = strip.querySelector('span');
+  if (placeholder && placeholder.textContent === 'No outcomes yet') placeholder.remove();
+
+  const dot = document.createElement('div');
+  dot.title = (correct ? 'CORRECT' : 'WRONG') + ' ' + decision + ' ' + (pnl >= 0 ? '+' : '') + pnl + '%';
+  dot.style.cssText = [
+    'width:14px', 'height:14px', 'border-radius:3px',
+    'background:' + (correct ? 'var(--long)' : 'var(--short)'),
+    'cursor:default', 'flex-shrink:0',
+    'border:1px solid ' + (correct ? 'rgba(0,212,170,0.4)' : 'rgba(255,77,109,0.4)'),
+  ].join(';');
+  strip.appendChild(dot);
+
+  // Keep only last 20 dots
+  while (strip.children.length > 20) strip.removeChild(strip.firstChild);
+}
+
+function updateOutcomeMarkers() {
+  // placeholder — chart markers updated separately when outcomes resolve
+}
+
+// Live step display helpers
+function setLiveStep(text, pct) {
+  const el = document.getElementById('liveStepText');
+  const bar = document.getElementById('liveProgressBar');
+  const pctEl = document.getElementById('liveProgressPct');
+  if (el) el.textContent = text;
+  if (bar) bar.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+}
+
+// Countdown timer
+function startCountdown(totalSecs) {
+  stopCountdown();
+  let remaining = totalSecs;
+  const el = document.getElementById('liveCountdown');
+  if (!el) return;
+  el.textContent = formatSecs(remaining);
+  state.countdownTimer = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      el.textContent = 'Starting…';
+      stopCountdown();
+    } else {
+      el.textContent = formatSecs(remaining);
+      // colour shifts as countdown nears zero
+      el.style.color = remaining < 30 ? 'var(--accent)' : 'var(--warn)';
+    }
+  }, 1000);
+}
+
+function stopCountdown() {
+  if (state.countdownTimer) {
+    clearInterval(state.countdownTimer);
+    state.countdownTimer = null;
+  }
+  const el = document.getElementById('liveCountdown');
+  if (el) { el.textContent = '--:--'; el.style.color = 'var(--warn)'; }
+}
+
+function formatSecs(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return (m > 0 ? m + 'm ' : '') + sec + 's';
+}
+
+// ============================================================
+// BACKTEST
+// ============================================================
+async function runBacktest() {
+  const ticker = document.getElementById('btTicker').value.trim();
+  if (!ticker) { toast('Enter a ticker', 'err'); return; }
+  if (state.isLive) { toast('Stop the live simulation before running a backtest', 'err'); return; }
+  if (state.isAnalysing) { toast('Wait for the current analysis to finish', 'err'); return; }
+  if (state.isBacktesting) { toast('Backtest already running', 'err'); return; }
+
+  state.isBacktesting = true;
+  document.getElementById('btnRunBacktest').disabled = true;
+  document.getElementById('btnRunBacktest').textContent = 'Running…';
+  setStatus('running', 'backtest running');
+
+  try {
+    const res  = await fetch('/api/backtest/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ticker,
+        interval: document.getElementById('btInterval').value,
+        start_date: document.getElementById('btStart').value,
+        end_date:   document.getElementById('btEnd').value,
+        max_runs:   parseInt(document.getElementById('btMaxRuns').value),
+      })
+    });
+    const data = await res.json();
+
+    if (data.error) { toast(data.error, 'err'); }
+    else {
+      renderBacktestResults(data);
+      loadBacktestResults();
+      loadTrainSelect();
+      toast('Backtest complete', 'ok');
+    }
+  } catch(e) {
+    toast('Backtest failed: ' + e.message, 'err');
+  } finally {
+    state.isBacktesting = false;
+    document.getElementById('btnRunBacktest').disabled = false;
+    document.getElementById('btnRunBacktest').textContent = 'Run Backtest';
+    setStatus('', 'idle');
+  }
+}
+
+function renderBacktestResults(data) {
+  const s  = data.agent_stats    || {};
+  const bs = data.baseline_stats || {};
+
+  document.getElementById('btResults').style.display = 'flex';
+
+  // Stats grid
+  const acc      = ((s.accuracy || 0) * 100).toFixed(1);
+  const bAcc     = ((bs.accuracy || 0) * 100).toFixed(1);
+  const sharpe   = (s.sharpe_ratio || 0).toFixed(2);
+  const pnl      = ((s.cumulative_pnl || 0) * 100).toFixed(2);
+  const total    = s.total_signals || 0;
+
+  document.getElementById('btStatsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Accuracy</div>
+      <div class="stat-value ${acc >= 55 ? 'positive' : acc >= 50 ? 'neutral' : 'negative'}">${acc}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Random baseline</div>
+      <div class="stat-value neutral">${bAcc}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Sharpe ratio</div>
+      <div class="stat-value ${sharpe >= 1 ? 'positive' : sharpe >= 0 ? 'neutral' : 'negative'}">${sharpe}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Cum. P&amp;L</div>
+      <div class="stat-value ${pnl >= 0 ? 'positive' : 'negative'}">${pnl}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total signals</div>
+      <div class="stat-value neutral">${total}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Long accuracy</div>
+      <div class="stat-value ${(s.long_accuracy||0) >= 0.5 ? 'positive' : 'negative'}">${((s.long_accuracy||0)*100).toFixed(1)}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Short accuracy</div>
+      <div class="stat-value ${(s.short_accuracy||0) >= 0.5 ? 'positive' : 'negative'}">${((s.short_accuracy||0)*100).toFixed(1)}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">F1 score</div>
+      <div class="stat-value neutral">${(s.f1_score||0).toFixed(3)}</div>
+    </div>
+  `;
+
+  // Confusion matrix
+  const cm = s.confusion_matrix || {};
+  document.getElementById('btConfMatrix').innerHTML = `
+    <div class="conf-cell tp"><div class="val" style="color:var(--long)">${cm.TP||0}</div><div class="lbl">TP</div></div>
+    <div class="conf-cell fp"><div class="val" style="color:var(--short)">${cm.FP||0}</div><div class="lbl">FP</div></div>
+    <div class="conf-cell fn"><div class="val" style="color:var(--short)">${cm.FN||0}</div><div class="lbl">FN</div></div>
+    <div class="conf-cell tn"><div class="val" style="color:var(--long)">${cm.TN||0}</div><div class="lbl">TN</div></div>
+  `;
+
+  // P&L chart
+  if (state.btPnlChart) state.btPnlChart.destroy();
+  const pnlCtx = document.getElementById('btPnlChart').getContext('2d');
+  const pnlData = (data.pnl_curve || []).map((v,i) => ({ x: i+1, y: parseFloat((v*100).toFixed(3)) }));
+  state.btPnlChart = new Chart(pnlCtx, {
+    type: 'line',
+    data: { datasets: [{ label: 'P&L %', data: pnlData, borderColor: '#00d4aa', borderWidth: 1.5,
+      pointRadius: 0, fill: { target: 'origin', above: 'rgba(0,212,170,0.08)', below: 'rgba(255,77,109,0.08)' } }] },
+    options: { responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#4a5568', font: { size: 9, family: 'Space Mono' } } },
+                y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#4a5568', font: { size: 9, family: 'Space Mono' },
+                  callback: v => v.toFixed(1) + '%' } } } }
+  });
+
+  // Rolling accuracy chart
+  if (state.btAccChart) state.btAccChart.destroy();
+  const accCtx  = document.getElementById('btAccChart').getContext('2d');
+  const accData = (data.rolling_accuracy || []).map((v,i) => ({ x: i+1, y: parseFloat((v*100).toFixed(1)) }));
+  state.btAccChart = new Chart(accCtx, {
+    type: 'line',
+    data: { datasets: [
+      { label: 'Agent', data: accData, borderColor: '#0099ff', borderWidth: 1.5, pointRadius: 0 },
+      { label: '50% line', data: accData.map(p => ({ x: p.x, y: 50 })),
+        borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderDash: [4,4], pointRadius: 0 },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#4a5568', font: { size: 9, family: 'Space Mono' } } },
+                y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.04)' },
+                  ticks: { color: '#4a5568', font: { size: 9, family: 'Space Mono' }, callback: v => v + '%' } } } }
+  });
+
+  // Agent vs baseline bar chart
+  if (state.btCompareChart) state.btCompareChart.destroy();
+  const cmpCtx = document.getElementById('btCompareChart').getContext('2d');
+  state.btCompareChart = new Chart(cmpCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Accuracy', 'Precision', 'Recall', 'F1'],
+      datasets: [
+        { label: 'QuantAgent', data: [
+            parseFloat((s.accuracy||0).toFixed(3))*100,
+            parseFloat((s.precision||0).toFixed(3))*100,
+            parseFloat((s.recall||0).toFixed(3))*100,
+            parseFloat((s.f1_score||0).toFixed(3))*100,
+          ], backgroundColor: 'rgba(0,153,255,0.6)', borderColor: '#0099ff', borderWidth: 1 },
+        { label: 'Random', data: [
+            parseFloat((bs.accuracy||0).toFixed(3))*100,
+            parseFloat((bs.precision||0).toFixed(3))*100,
+            parseFloat((bs.recall||0).toFixed(3))*100,
+            parseFloat((bs.f1_score||0).toFixed(3))*100,
+          ], backgroundColor: 'rgba(90,90,90,0.4)', borderColor: '#5a5a5a', borderWidth: 1 },
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#4a5568', font: { size: 9, family: 'Space Mono' } } },
+                y: { max: 100, grid: { color: 'rgba(255,255,255,0.04)' },
+                  ticks: { color: '#4a5568', font: { size: 9, family: 'Space Mono' }, callback: v => v + '%' } } } }
+  });
+}
+
+async function loadBacktestResults() {
+  try {
+    const res  = await fetch('/api/backtest/list');
+    const data = await res.json();
+    const rows = data.results || [];
+    const body = document.getElementById('btResultsBody');
+
+    if (!rows.length) {
+      body.innerHTML = '<div class="empty-state">No backtest results yet</div>';
+      return;
+    }
+
+    body.innerHTML = rows.map(r => {
+      const acc = r.accuracy ? (r.accuracy * 100).toFixed(1) + '%' : '—';
+      const cls = r.accuracy >= 0.55 ? 'acc-good' : r.accuracy >= 0.5 ? '' : 'acc-bad';
+      return `<div class="result-row" onclick="loadSavedBacktest('${r.filename}')">
+        <span class="ticker-col">${r.ticker || '—'}</span>
+        <span>${r.market || '—'}</span>
+        <span>${r.interval || '—'}</span>
+        <span>${r.start || '—'}</span>
+        <span>${r.end || '—'}</span>
+        <span class="${cls}">${acc}</span>
+        <span>${r.total_signals || 0} signals</span>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error('Failed to load backtest results', e); }
+}
+
+async function loadSavedBacktest(filename) {
+  switchTab('backtest');
+  const res  = await fetch(`/api/backtest/load/${filename}`);
+  const data = await res.json();
+  if (data.error) { toast(data.error, 'err'); return; }
+  renderBacktestResults(data);
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function handleProviderChange(provider) {
+  localStorage.setItem('qa_provider', provider);
+  showProviderSections(provider);
+  // Only call the API when the user explicitly changes the provider
+  // (not on initial page load via showProviderSections)
+  fetch('/api/update-provider', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provider })
+  }).catch(e => console.warn('update-provider failed:', e));
+}
+
+async function saveAzureKey() {
+  const key = document.getElementById('azureKey').value.trim();
+  if (!key) return;
+  const res  = await fetch('/api/update-api-key', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api_key: key, provider: 'azure' })
+  });
+  const data = await res.json();
+  showMsg('azureKeyOk', 'azureKeyErr', data.success, data.error);
+}
+
+async function saveAzureConfig() {
+  const endpoint   = document.getElementById('azureEndpoint').value.trim();
+  const deployment = document.getElementById('azureDeployment').value.trim();
+  const apiVersion = document.getElementById('azureApiVersion').value.trim();
+
+  const res  = await fetch('/api/update-azure-config', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endpoint, deployment, api_version: apiVersion })
+  });
+  const data = await res.json();
+  showMsg('azureConfigOk', 'azureConfigErr', data.success, data.error);
+}
+
+async function saveProviderKey(provider, inputId, msgId) {
+  const key = document.getElementById(inputId).value.trim();
+  if (!key) return;
+  const res  = await fetch('/api/update-api-key', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api_key: key, provider })
+  });
+  const data = await res.json();
+  const el = document.getElementById(msgId);
+  el.textContent = data.success ? 'Saved' : (data.error || 'Failed');
+  el.style.display = 'block';
+}
+
+async function loadModelStatus() {
+  try {
+    const res  = await fetch('/api/prediction/status');
+    const data = await res.json();
+    const badge = document.getElementById('modelStatusBadge');
+    const text  = document.getElementById('modelStatusText');
+    if (data.trained) {
+      badge.className = 'badge trained';
+      badge.textContent = 'trained';
+      const m = data.train_meta || {};
+      text.textContent = `Trained on ${m.n_samples || '?'} samples from ${m.ticker || '?'} (${m.interval || '?'}) — accuracy ${m.train_accuracy ? (m.train_accuracy*100).toFixed(1)+'%' : '?'}`;
+    } else {
+      badge.className = 'badge untrained';
+      badge.textContent = 'not trained';
+      text.textContent = 'Train the model from a backtest result to enable signal refinement';
+    }
+  } catch(e) {}
+}
+
+async function loadTrainSelect() {
+  try {
+    const res  = await fetch('/api/backtest/list');
+    const data = await res.json();
+    const sel  = document.getElementById('trainSelect');
+    sel.innerHTML = '<option value="">Select a backtest result…</option>' +
+      (data.results || []).map(r =>
+        `<option value="${r.filename}">${r.ticker} ${r.interval} (${r.start} → ${r.end}, ${(r.accuracy*100).toFixed(1)}%)</option>`
+      ).join('');
+  } catch(e) {}
+}
+
+async function trainModel() {
+  const filename = document.getElementById('trainSelect').value;
+  if (!filename) { toast('Select a backtest result first', 'err'); return; }
+
+  const res  = await fetch('/api/prediction/train', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename })
+  });
+  const data = await res.json();
+  if (data.error) {
+    document.getElementById('trainErr').textContent = data.error;
+    document.getElementById('trainErr').style.display = 'block';
+    document.getElementById('trainOk').style.display = 'none';
+  } else {
+    document.getElementById('trainOk').textContent =
+      `Trained — accuracy ${(data.train_accuracy*100).toFixed(1)}% on ${data.n_samples} samples`;
+    document.getElementById('trainOk').style.display = 'block';
+    document.getElementById('trainErr').style.display = 'none';
+    loadModelStatus();
+    toast('Model trained successfully', 'ok');
+  }
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function setStatus(dotClass, label) {
+  const dot  = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  dot.className  = 'status-dot' + (dotClass ? ` ${dotClass}` : '');
+  text.textContent = label;
+}
+
+function showProgress(show) {
+  document.getElementById('progressWrap').classList.toggle('visible', show);
+}
+
+function setProgress(stepKey) {
+  const step = PROGRESS_STEPS[stepKey];
+  if (!step) return;
+  document.getElementById('progressStep').textContent = step.label;
+  document.getElementById('progressFill').style.width = step.pct + '%';
+}
+
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  if (!el) { alert(msg); return; }
+  el.textContent = msg;
+  el.className = 'toast ' + type + ' show';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function showMsg(okId, errId, success, errMsg) {
+  document.getElementById(okId).style.display  = success ? 'block' : 'none';
+  document.getElementById(errId).style.display = success ? 'none'  : 'block';
+  if (!success && errMsg) document.getElementById(errId).textContent = errMsg;
+}
+
+
+// ============================================================
+// MARKDOWN RENDERER (lightweight — for agent reports)
+// ============================================================
+function renderMarkdown(text) {
+  if (!text) return '';
+  // Strip triple-backtick code fences entirely (LLM wraps reports in them)
+  text = text.replace(/^```[\w]*\n?/gm, '').replace(/^```$/gm, '');
+  // Escape HTML first
+  let html = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Headers (### ## #)
+  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+  html = html.replace(/^### (.+)$/gm,  '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm,   '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm,    '<h1>$1</h1>');
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g,       '<em>$1</em>');
+  // Horizontal rule
+  html = html.replace(/^---+$/gm, '<hr>');
+  // Bullet lists
+  html = html.replace(/^[*\-] (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+  // Numbered lists
+  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  // Inline code
+  html = html.replace(/`(.+?)`/g, '<code>$1</code>');
+  // Paragraphs: double newline becomes paragraph break
+  html = html.split(/\n{2,}/).map(block => {
+    block = block.trim();
+    if (!block) return '';
+    if (block.startsWith('<h') || block.startsWith('<ul') ||
+        block.startsWith('<ol') || block.startsWith('<hr') ||
+        block.startsWith('<li')) return block;
+    return '<p>' + block.replace(/\n/g, ' ') + '</p>';
+  }).join('');
+  return html;
+}
+
+
+// ============================================================
+// LIVE ERROR DISPLAY
+// ============================================================
+function showLiveError(msg) {
+  const el = document.getElementById('liveErrorBanner');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideLiveError() {
+  const el = document.getElementById('liveErrorBanner');
+  if (el) el.style.display = 'none';
+}
+
+// ============================================================
+// PROVIDER SECTION VISIBILITY (no API call)
+// ============================================================
+function showProviderSections(provider) {
+  document.getElementById('azureSection').style.display     = provider === 'azure'     ? 'block' : 'none';
+  document.getElementById('anthropicSection').style.display = provider === 'anthropic' ? 'block' : 'none';
+  document.getElementById('qwenSection').style.display      = provider === 'qwen'      ? 'block' : 'none';
+}
+
+// ============================================================
+// ANALYSIS PROGRESS ANIMATION
+// ============================================================
+// Simulates progress through pipeline steps during a single analysis run.
+// The actual backend takes 30-60s; we animate through expected steps
+// so the user sees meaningful feedback rather than a stuck bar.
+function animateAnalysisProgress() {
+  const steps = ['fetching','charting','indicators','pattern','trend','decision','prediction'];
+  let idx = 0;
+  // Advance one step every ~8 seconds (50s total for 6 steps)
+  return setInterval(() => {
+    idx++;
+    if (idx < steps.length) {
+      setProgress(steps[idx]);
+      setStatus('running', PROGRESS_STEPS[steps[idx]].label);
+    }
+  }, 8000);
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+// ============================================================
+// ABLATION
+// ============================================================
+let ablAccChart    = null;
+let ablSharpeChart = null;
+
+async function loadAblationSelect() {
+  try {
+    const res  = await fetch('/api/backtest/list');
+    const data = await res.json();
+    const sel  = document.getElementById('ablSelect');
+    sel.innerHTML = '<option value="">Select a backtest result…</option>' +
+      (data.results || []).map(r =>
+        `<option value="${r.filename}">${r.ticker} ${r.interval} — ${r.start} → ${r.end} (${(r.accuracy*100).toFixed(1)}%)</option>`
+      ).join('');
+  } catch(e) {}
+}
+
+async function runAblation() {
+  const filename = document.getElementById('ablSelect').value;
+  if (!filename) { toast('Select a backtest result first', 'err'); return; }
+
+  document.getElementById('btnRunAbl').disabled = true;
+  document.getElementById('btnRunAbl').textContent = 'Running…';
+  setStatus('running', 'ablation running');
+
+  try {
+    const res  = await fetch('/api/ablation/run', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename })
+    });
+    const data = await res.json();
+    if (data.error) { toast(data.error, 'err'); return; }
+    renderAblation(data);
+    loadAblationResults();
+    toast('Ablation complete', 'ok');
+  } catch(e) {
+    toast('Ablation failed: ' + e.message, 'err');
+  } finally {
+    document.getElementById('btnRunAbl').disabled = false;
+    document.getElementById('btnRunAbl').textContent = 'Run Ablation';
+    setStatus('', 'idle');
+  }
+}
+
+function renderAblation(data) {
+  const variants = data.variants || [];
+  const best     = data.best_variant;
+  const meta     = data.meta || {};
+
+  // Lift banner
+  const liftRand = data.lift_vs_random_pp;
+  const liftInd  = data.lift_vs_indicators_pp;
+  document.getElementById('ablLiftBanner').style.display = 'flex';
+
+  const lrEl = document.getElementById('ablLiftRandom');
+  lrEl.textContent = (liftRand >= 0 ? '+' : '') + liftRand.toFixed(1) + ' pp';
+  lrEl.className   = 'lift-value ' + (liftRand >= 2 ? 'pos' : liftRand >= 0 ? 'neu' : 'neg');
+
+  const liEl = document.getElementById('ablLiftInd');
+  liEl.textContent = (liftInd >= 0 ? '+' : '') + liftInd.toFixed(1) + ' pp';
+  liEl.className   = 'lift-value ' + (liftInd >= 2 ? 'pos' : liftInd >= 0 ? 'neu' : 'neg');
+
+  document.getElementById('ablBestVariant').textContent =
+    variants.find(v => v.variant === best)?.label || best;
+  document.getElementById('ablNRecords').textContent = meta.n_records || '—';
+
+  // Variant cards
+  const VARIANT_COLORS = {
+    random_baseline:           '#4a5568',
+    indicators_only:           '#f5a623',
+    full_quantagent:           '#0099ff',
+    quantagent_plus_prediction:'#00d4aa',
+  };
+
+  document.getElementById('ablVariantGrid').innerHTML = variants.map(v => {
+    const acc   = (v.accuracy * 100).toFixed(1);
+    const color = VARIANT_COLORS[v.variant] || '#888';
+    const isBest = v.variant === best;
+    return `
+      <div class="variant-card ${isBest ? 'best' : ''}">
+        ${isBest ? '<div class="best-badge">best</div>' : ''}
+        <div class="variant-name">${v.label}</div>
+        <div class="variant-desc">${v.desc || v.description || ''}</div>
+        <div class="variant-accuracy" style="color:${color}">${acc}%</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:8px;">accuracy</div>
+        <div class="variant-stats">
+          <div class="variant-stat-row">Sharpe <span>${(v.sharpe_ratio||0).toFixed(2)}</span></div>
+          <div class="variant-stat-row">F1 <span>${(v.f1_score||0).toFixed(3)}</span></div>
+          <div class="variant-stat-row">Cum P&L <span>${((v.cumulative_pnl||0)*100).toFixed(2)}%</span></div>
+          <div class="variant-stat-row">Long acc <span>${((v.long_accuracy||0)*100).toFixed(1)}%</span></div>
+          <div class="variant-stat-row">Short acc <span>${((v.short_accuracy||0)*100).toFixed(1)}%</span></div>
+          ${v.flip_rate !== undefined ? `<div class="variant-stat-row">Flip rate <span>${(v.flip_rate*100).toFixed(1)}%</span></div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Charts
+  document.getElementById('ablCharts').style.display = 'grid';
+
+  const labels = variants.map(v => v.label);
+  const colors = variants.map(v => VARIANT_COLORS[v.variant] || '#888');
+
+  if (ablAccChart) ablAccChart.destroy();
+  ablAccChart = new Chart(document.getElementById('ablAccChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: variants.map(v => parseFloat((v.accuracy*100).toFixed(1))),
+        backgroundColor: colors.map(c => c + '99'),
+        borderColor: colors, borderWidth: 1,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#4a5568', font: { size: 9, family: 'Space Mono' }, maxRotation: 15 } },
+        y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#4a5568', font: { size: 9, family: 'Space Mono' }, callback: v => v + '%' } }
+      }
+    }
+  });
+
+  if (ablSharpeChart) ablSharpeChart.destroy();
+  ablSharpeChart = new Chart(document.getElementById('ablSharpeChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: variants.map(v => parseFloat((v.sharpe_ratio||0).toFixed(3))),
+        backgroundColor: colors.map(c => c + '99'),
+        borderColor: colors, borderWidth: 1,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#4a5568', font: { size: 9, family: 'Space Mono' }, maxRotation: 15 } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#4a5568', font: { size: 9, family: 'Space Mono' }, callback: v => v.toFixed(2) } }
+      }
+    }
+  });
+
+  // Feature importance (if prediction layer used)
+  const predVariant = variants.find(v => v.variant === 'quantagent_plus_prediction');
+  if (predVariant && data.feature_importance) {
+    renderFeatureImportance(data.feature_importance);
+  } else {
+    // Try loading from model status
+    fetch('/api/prediction/status').then(r => r.json()).then(ps => {
+      if (ps.trained && ps.feature_importance) renderFeatureImportance(ps.feature_importance);
+    });
+  }
+}
+
+function renderFeatureImportance(fi) {
+  const wrap = document.getElementById('ablFeatures');
+  wrap.style.display = 'block';
+  const maxVal = Math.max(...Object.values(fi));
+  const rows   = Object.entries(fi)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, val]) => {
+      const pct = maxVal > 0 ? (val / maxVal * 100).toFixed(1) : 0;
+      return `
+        <div class="fi-row">
+          <div class="fi-name">${name}</div>
+          <div class="fi-bar-wrap"><div class="fi-bar" style="width:${pct}%"></div></div>
+          <div class="fi-val">${val.toFixed(3)}</div>
+        </div>`;
+    }).join('');
+  document.getElementById('ablFiRows').innerHTML = rows;
+}
+
+async function loadAblationResults() {
+  try {
+    const res  = await fetch('/api/ablation/list');
+    const data = await res.json();
+    const rows = data.results || [];
+    const body = document.getElementById('ablResultsBody');
+    if (!rows.length) {
+      body.innerHTML = '<div class="empty-state">No ablation results yet</div>';
+      return;
+    }
+    body.innerHTML = rows.map(r => {
+      const agAcc  = r.agent_accuracy  ? (r.agent_accuracy  * 100).toFixed(1) + '%' : '—';
+      const rndAcc = r.random_accuracy ? (r.random_accuracy * 100).toFixed(1) + '%' : '—';
+      const lift   = r.lift_pp !== null ? (r.lift_pp >= 0 ? '+' : '') + r.lift_pp.toFixed(1) + ' pp' : '—';
+      const liftCls = r.lift_pp >= 2 ? 'acc-good' : r.lift_pp >= 0 ? '' : 'acc-bad';
+      return `<div class="result-row" style="grid-template-columns:80px 60px 60px 60px 80px 1fr" onclick="loadSavedAblation('${r.filename}')">
+        <span class="ticker-col">${r.ticker || '—'}</span>
+        <span>${r.market || '—'}</span>
+        <span>${r.interval || '—'}</span>
+        <span>${agAcc}</span>
+        <span class="${liftCls}">${lift} vs random</span>
+        <span style="color:var(--text3)">${r.n_records || 0} records</span>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function loadSavedAblation(filename) {
+  const res  = await fetch(`/api/ablation/load/${filename}`);
+  const data = await res.json();
+  if (data.error) { toast(data.error, 'err'); return; }
+  renderAblation(data);
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+{
+  "meta": {
+    "backtest_file": "TITAN_1h_20250101_20260323.json",
+    "ticker": "TITAN",
+    "display_name": "Titan Company",
+    "market": "NSE",
+    "interval": "1h",
+    "n_records": 44,
+    "n_directional": 34,
+    "hold_count": 10,
+    "hold_rate": 0.2273,
+    "run_at": "2026-03-23T22:48:37.489357"
+  },
+  "variants": [
+    {
+      "total_signals": 44,
+      "active_signals": 44,
+      "hold_signals": 0,
+      "correct": 22,
+      "accuracy": 0.5,
+      "filtered_accuracy": 0.5,
+      "sharpe_ratio": -0.7777,
+      "cumulative_pnl": -0.029783,
+      "confusion_matrix": {
+        "TP": 8,
+        "TN": 14,
+        "FP": 14,
+        "FN": 8
+      },
+      "precision": 0.3636,
+      "recall": 0.5,
+      "f1_score": 0.4211,
+      "long_accuracy": 0.3636,
+      "short_accuracy": 0.6364,
+      "long_signals": 22,
+      "short_signals": 22,
+      "variant": "random_baseline",
+      "label": "Random baseline",
+      "description": "Coin-flip LONG/SHORT \u2014 the floor all agents must beat"
+    },
+    {
+      "total_signals": 44,
+      "active_signals": 44,
+      "hold_signals": 0,
+      "correct": 17,
+      "accuracy": 0.3864,
+      "filtered_accuracy": 0.3864,
+      "sharpe_ratio": -0.7369,
+      "cumulative_pnl": -0.028224,
+      "confusion_matrix": {
+        "TP": 8,
+        "TN": 9,
+        "FP": 19,
+        "FN": 8
+      },
+      "precision": 0.2963,
+      "recall": 0.5,
+      "f1_score": 0.3721,
+      "long_accuracy": 0.2963,
+      "short_accuracy": 0.5294,
+      "long_signals": 27,
+      "short_signals": 17,
+      "variant": "indicators_only",
+      "label": "Indicators only",
+      "description": "Keyword-majority heuristic over indicator report \u2014 no LLM"
+    },
+    {
+      "total_signals": 34,
+      "active_signals": 34,
+      "hold_signals": 0,
+      "correct": 16,
+      "accuracy": 0.4706,
+      "filtered_accuracy": 0.4706,
+      "sharpe_ratio": 0.004,
+      "cumulative_pnl": 0.000126,
+      "confusion_matrix": {
+        "TP": 5,
+        "TN": 11,
+        "FP": 9,
+        "FN": 9
+      },
+      "precision": 0.3571,
+      "recall": 0.3571,
+      "f1_score": 0.3571,
+      "long_accuracy": 0.3571,
+      "short_accuracy": 0.55,
+      "long_signals": 14,
+      "short_signals": 20,
+      "variant": "full_quantagent",
+      "label": "Full QuantAgent",
+      "description": "Complete pipeline: indicator + pattern + trend agents \u2192 LLM decision (directional calls only)"
+    },
+    {
+      "total_signals": 44,
+      "active_signals": 44,
+      "hold_signals": 0,
+      "correct": 28,
+      "accuracy": 0.6364,
+      "filtered_accuracy": 0.6364,
+      "sharpe_ratio": 5.1014,
+      "cumulative_pnl": 0.186228,
+      "confusion_matrix": {
+        "TP": 10,
+        "TN": 18,
+        "FP": 10,
+        "FN": 6
+      },
+      "precision": 0.5,
+      "recall": 0.625,
+      "f1_score": 0.5556,
+      "long_accuracy": 0.5,
+      "short_accuracy": 0.75,
+      "long_signals": 20,
+      "short_signals": 24,
+      "variant": "quantagent_plus_prediction",
+      "label": "QuantAgent + Prediction Layer",
+      "description": "LLM pipeline refined by trained logistic regression model",
+      "flip_rate": 0.7045,
+      "flip_count": 31
+    }
+  ],
+  "comparison": {
+    "accuracy": {
+      "random_baseline": 0.5,
+      "indicators_only": 0.3864,
+      "full_quantagent": 0.4706,
+      "quantagent_plus_prediction": 0.6364
+    },
+    "sharpe_ratio": {
+      "random_baseline": -0.7777,
+      "indicators_only": -0.7369,
+      "full_quantagent": 0.004,
+      "quantagent_plus_prediction": 5.1014
+    },
+    "f1_score": {
+      "random_baseline": 0.4211,
+      "indicators_only": 0.3721,
+      "full_quantagent": 0.3571,
+      "quantagent_plus_prediction": 0.5556
+    },
+    "cum_pnl": {
+      "random_baseline": -0.029783,
+      "indicators_only": -0.028224,
+      "full_quantagent": 0.000126,
+      "quantagent_plus_prediction": 0.186228
+    }
+  },
+  "best_variant": "quantagent_plus_prediction",
+  "lift_vs_random_pp": -2.94,
+  "lift_vs_indicators_pp": 8.42,
+  "has_prediction_layer": true
+}
