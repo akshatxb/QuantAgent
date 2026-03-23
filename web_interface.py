@@ -15,7 +15,6 @@ from trading_graph import TradingGraph
 import data_pipeline as dp
 import backtest as bt
 from prediction_layer import PredictionLayer
-from live_sim import LiveSimEngine
 import ablation as abl
 
 from qa_logger import get_logger
@@ -42,9 +41,6 @@ class WebTradingAnalyzer:
         # Prediction layer (loads saved model if available)
         self.prediction_layer = PredictionLayer()
         self.prediction_layer.load()
-
-        # Live simulation engine (needs prediction_layer, so must come after)
-        self.live_sim = LiveSimEngine(self.trading_graph, self.prediction_layer)
 
         # Backtest engine
         self.backtest_engine = bt.BacktestEngine(self.trading_graph)
@@ -720,7 +716,6 @@ def update_provider():
         analyzer.config["graph_llm_model"] = model
         analyzer.trading_graph.config.update(analyzer.config)
         analyzer.trading_graph.refresh_llms()
-        analyzer.live_sim.trading_graph = analyzer.trading_graph
 
         return jsonify({"success": True, "message": f"Provider updated to {provider} ({model})"})
 
@@ -873,60 +868,6 @@ def update_azure_config():
         return jsonify({"error": str(e)})
 
 
-# ---------------------------------------------------------------------------
-# Live simulation
-# ---------------------------------------------------------------------------
-
-@app.route("/api/live/start", methods=["POST"])
-def live_start():
-    try:
-        data     = request.get_json()
-        ticker   = (data.get("ticker") or "").strip()
-        interval = data.get("interval", "1h")
-        if not ticker:
-            return jsonify({"error": "ticker is required"}), 400
-        log.ok(f"Live sim starting: {ticker} @ {interval}")
-        result = analyzer.live_sim.start(ticker=ticker, interval=interval)
-
-        return jsonify(result)
-    except Exception as e:
-        log.error(f"live/start error: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/live/stop", methods=["POST"])
-def live_stop():
-    try:
-        return jsonify(analyzer.live_sim.stop())
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/live/status")
-def live_status():
-    try:
-        return jsonify(analyzer.live_sim.status())
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/live/stream")
-def live_stream():
-    def generate():
-        yield from analyzer.live_sim.subscribe()
-    return Response(
-        generate(),
-        mimetype="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
-    )
-
-
-@app.route("/api/live/history")
-def live_history():
-    try:
-        return jsonify({"history": analyzer.live_sim.get_history()})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 # ---------------------------------------------------------------------------

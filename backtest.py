@@ -32,6 +32,7 @@ import pandas as pd
 
 import data_pipeline as dp
 from qa_logger import get_logger
+
 log = get_logger("Backtest")
 
 RESULTS_DIR = Path("data/backtest_results")
@@ -41,43 +42,44 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 # Extended horizons so trends have more time to develop.
 # At 2 candles (2h for 1h charts), price is near-random noise.
 OUTCOME_HORIZON: dict[str, int] = {
-    "1m":  5,
-    "5m":  5,
+    "1m": 5,
+    "5m": 5,
     "15m": 5,
     "30m": 4,
-    "1h":  5,
-    "4h":  4,
-    "1d":  3,
+    "1h": 5,
+    "4h": 4,
+    "1d": 3,
     "1wk": 2,
     "1mo": 2,
 }
 
 # Step 6: Lowered from 0.15% to 0.10% — 0.15% was filtering too many
 # valid signals on NSE 1h data (TCS avg move ~0.18-0.25%).
-MIN_MOVE_THRESHOLD = 0.0010   # 0.10% of entry price
+MIN_MOVE_THRESHOLD = 0.0010  # 0.10% of entry price
 
-WINDOW_SIZE = 45   # candles fed to QuantAgent per run
-MIN_STEP    = 6    # slide 6 candles forward — less overlap, more independent signals
-                   # (was 3: consecutive windows shared 42/45 candles — near-identical)
+WINDOW_SIZE = 45  # candles fed to QuantAgent per run
+MIN_STEP = 6  # slide 6 candles forward — less overlap, more independent signals
+# (was 3: consecutive windows shared 42/45 candles — near-identical)
 
 # Sharpe annualisation: sqrt(bars per trading year)
 # Different for each timeframe — using sqrt(252 * daily_bars):
 SHARPE_ANNUALISATION: dict[str, float] = {
-    "1m":   (252 * 390) ** 0.5,   # US: 6.5h * 60m
-    "5m":   (252 * 78)  ** 0.5,
-    "15m":  (252 * 26)  ** 0.5,
-    "30m":  (252 * 13)  ** 0.5,
-    "1h":   (252 * 6.5) ** 0.5,   # ~40.5  (was 15.9 — factor 2.5x understated)
-    "4h":   (252 * 1.625) ** 0.5,
-    "1d":   252 ** 0.5,
-    "1wk":  52  ** 0.5,
-    "1mo":  12  ** 0.5,
+    "1m": (252 * 390) ** 0.5,  # US: 6.5h * 60m
+    "5m": (252 * 78) ** 0.5,
+    "15m": (252 * 26) ** 0.5,
+    "30m": (252 * 13) ** 0.5,
+    "1h": (252 * 6.5) ** 0.5,  # ~40.5  (was 15.9 — factor 2.5x understated)
+    "4h": (252 * 1.625) ** 0.5,
+    "1d": 252**0.5,
+    "1wk": 52**0.5,
+    "1mo": 12**0.5,
 }
 
 
 # ---------------------------------------------------------------------------
 # Outcome labelling
 # ---------------------------------------------------------------------------
+
 
 def _label_outcome(df: pd.DataFrame, signal_idx: int, horizon: int) -> str | None:
     """
@@ -91,7 +93,7 @@ def _label_outcome(df: pd.DataFrame, signal_idx: int, horizon: int) -> str | Non
         return None
 
     entry_price = df["Close"].iloc[signal_idx]
-    exit_price  = df["Close"].iloc[future_end]
+    exit_price = df["Close"].iloc[future_end]
 
     if exit_price > entry_price:
         return "LONG"
@@ -105,6 +107,7 @@ def _label_outcome(df: pd.DataFrame, signal_idx: int, horizon: int) -> str | Non
 # Signal parser
 # ---------------------------------------------------------------------------
 
+
 def _parse_decision(raw: str) -> dict | None:
     """
     Extract the JSON decision block from QuantAgent's raw output string.
@@ -115,7 +118,7 @@ def _parse_decision(raw: str) -> dict | None:
         return None
     try:
         start = raw.find("{")
-        end   = raw.rfind("}") + 1
+        end = raw.rfind("}") + 1
         if start == -1 or end == 0:
             return None
         data = json.loads(raw[start:end])
@@ -123,11 +126,11 @@ def _parse_decision(raw: str) -> dict | None:
         if decision not in ("LONG", "SHORT", "HOLD"):
             return None
         return {
-            "decision":          decision,
-            "justification":     data.get("justification", ""),
+            "decision": decision,
+            "justification": data.get("justification", ""),
             "risk_reward_ratio": data.get("risk_reward_ratio", "N/A"),
-            "forecast_horizon":  data.get("forecast_horizon", "N/A"),
-            "signal_strength":   data.get("signal_strength", "UNKNOWN"),
+            "forecast_horizon": data.get("forecast_horizon", "N/A"),
+            "signal_strength": data.get("signal_strength", "UNKNOWN"),
         }
     except (json.JSONDecodeError, Exception):
         return None
@@ -136,6 +139,7 @@ def _parse_decision(raw: str) -> dict | None:
 # ---------------------------------------------------------------------------
 # Statistics calculator
 # ---------------------------------------------------------------------------
+
 
 def _compute_stats(records: list[dict], interval: str = "") -> dict:
     """
@@ -154,8 +158,8 @@ def _compute_stats(records: list[dict], interval: str = "") -> dict:
 
     # Separate HOLD signals from directional signals
     hold_df = df[df["signal"] == "HOLD"]
-    dir_df  = df[df["signal"].isin(["LONG", "SHORT"])]
-    n       = len(dir_df)  # accuracy is only over directional signals
+    dir_df = df[df["signal"].isin(["LONG", "SHORT"])]
+    n = len(dir_df)  # accuracy is only over directional signals
 
     # Step 7: Compute hold rate
     total_all = len(df)
@@ -170,34 +174,36 @@ def _compute_stats(records: list[dict], interval: str = "") -> dict:
             "hold_rate_warning": hold_rate_warning,
         }
 
-    correct   = dir_df["correct"].sum()
-    accuracy  = correct / n if n else 0.0
-    win_rate  = accuracy
+    correct = dir_df["correct"].sum()
+    accuracy = correct / n if n else 0.0
+    win_rate = accuracy
 
     # Confusion matrix (directional signals only)
-    tp = int(((dir_df["signal"] == "LONG")  & (dir_df["outcome"] == "LONG")).sum())
+    tp = int(((dir_df["signal"] == "LONG") & (dir_df["outcome"] == "LONG")).sum())
     tn = int(((dir_df["signal"] == "SHORT") & (dir_df["outcome"] == "SHORT")).sum())
-    fp = int(((dir_df["signal"] == "LONG")  & (dir_df["outcome"] == "SHORT")).sum())
+    fp = int(((dir_df["signal"] == "LONG") & (dir_df["outcome"] == "SHORT")).sum())
     fn = int(((dir_df["signal"] == "SHORT") & (dir_df["outcome"] == "LONG")).sum())
 
     # Precision / Recall for LONG signals
     precision = tp / (tp + fp) if (tp + fp) else 0.0
-    recall    = tp / (tp + fn) if (tp + fn) else 0.0
-    f1        = (2 * precision * recall / (precision + recall)
-                 if (precision + recall) else 0.0)
+    recall = tp / (tp + fn) if (tp + fn) else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
 
     # Sharpe ratio on per-trade P&L (directional trades only)
-    pnl_series  = dir_df["pnl"].values
-    ann_factor  = SHARPE_ANNUALISATION.get(interval, 252 ** 0.5)
-    sharpe = (float(np.mean(pnl_series) / np.std(pnl_series) * ann_factor)
-              if np.std(pnl_series) > 0 else 0.0)
+    pnl_series = dir_df["pnl"].values
+    ann_factor = SHARPE_ANNUALISATION.get(interval, 252**0.5)
+    sharpe = (
+        float(np.mean(pnl_series) / np.std(pnl_series) * ann_factor)
+        if np.std(pnl_series) > 0
+        else 0.0
+    )
 
     cumulative_pnl = float(dir_df["pnl"].sum())
 
-    long_df  = dir_df[dir_df["signal"] == "LONG"]
+    long_df = dir_df[dir_df["signal"] == "LONG"]
     short_df = dir_df[dir_df["signal"] == "SHORT"]
 
-    long_acc  = float(long_df["correct"].mean())  if len(long_df)  else 0.0
+    long_acc = float(long_df["correct"].mean()) if len(long_df) else 0.0
     short_acc = float(short_df["correct"].mean()) if len(short_df) else 0.0
 
     # Unanimous accuracy — how well the system performs when all
@@ -205,38 +211,39 @@ def _compute_stats(records: list[dict], interval: str = "") -> dict:
     if "unanimous" in dir_df.columns:
         unan_df = dir_df[dir_df["unanimous"] == True]
         unan_acc = float(unan_df["correct"].mean()) if len(unan_df) else None
-        unan_n   = len(unan_df)
+        unan_n = len(unan_df)
     else:
         unan_acc, unan_n = None, 0
 
     # Step 4: No hold_correct — HOLD means no position, no accuracy contribution.
 
     return {
-        "total_signals":       n,
-        "hold_signals":        len(hold_df),
-        "hold_rate":           round(hold_rate, 4),
-        "hold_rate_warning":   hold_rate_warning,
-        "correct":             int(correct),
-        "accuracy":            round(accuracy, 4),
-        "win_rate":            round(win_rate, 4),
-        "sharpe_ratio":        round(sharpe, 4),
-        "cumulative_pnl":      round(cumulative_pnl, 6),
-        "confusion_matrix":    {"TP": tp, "TN": tn, "FP": fp, "FN": fn},
-        "precision":           round(precision, 4),
-        "recall":              round(recall, 4),
-        "f1_score":            round(f1, 4),
-        "long_accuracy":       round(long_acc, 4),
-        "short_accuracy":      round(short_acc, 4),
-        "long_signals":        len(long_df),
-        "short_signals":       len(short_df),
-        "unanimous_signals":   unan_n,
-        "unanimous_accuracy":  round(unan_acc, 4) if unan_acc is not None else None,
+        "total_signals": n,
+        "hold_signals": len(hold_df),
+        "hold_rate": round(hold_rate, 4),
+        "hold_rate_warning": hold_rate_warning,
+        "correct": int(correct),
+        "accuracy": round(accuracy, 4),
+        "win_rate": round(win_rate, 4),
+        "sharpe_ratio": round(sharpe, 4),
+        "cumulative_pnl": round(cumulative_pnl, 6),
+        "confusion_matrix": {"TP": tp, "TN": tn, "FP": fp, "FN": fn},
+        "precision": round(precision, 4),
+        "recall": round(recall, 4),
+        "f1_score": round(f1, 4),
+        "long_accuracy": round(long_acc, 4),
+        "short_accuracy": round(short_acc, 4),
+        "long_signals": len(long_df),
+        "short_signals": len(short_df),
+        "unanimous_signals": unan_n,
+        "unanimous_accuracy": round(unan_acc, 4) if unan_acc is not None else None,
     }
 
 
 # ---------------------------------------------------------------------------
 # Random baseline (for comparison)
 # ---------------------------------------------------------------------------
+
 
 def run_random_baseline(records: list[dict]) -> dict:
     """
@@ -249,13 +256,15 @@ def run_random_baseline(records: list[dict]) -> dict:
         signal = "LONG" if rng.random() > 0.5 else "SHORT"
         outcome = r["outcome"]
         correct = signal == outcome
-        pnl     = r["pnl_magnitude"] if correct else -r["pnl_magnitude"]
-        fake_records.append({
-            "signal":  signal,
-            "outcome": outcome,
-            "correct": correct,
-            "pnl":     pnl,
-        })
+        pnl = r["pnl_magnitude"] if correct else -r["pnl_magnitude"]
+        fake_records.append(
+            {
+                "signal": signal,
+                "outcome": outcome,
+                "correct": correct,
+                "pnl": pnl,
+            }
+        )
     stats = _compute_stats(fake_records)
     stats["variant"] = "random_baseline"
     return stats
@@ -264,6 +273,7 @@ def run_random_baseline(records: list[dict]) -> dict:
 # ---------------------------------------------------------------------------
 # Main backtest runner
 # ---------------------------------------------------------------------------
+
 
 class BacktestEngine:
     """
@@ -276,13 +286,13 @@ class BacktestEngine:
 
     def run(
         self,
-        ticker:    str,
-        interval:  str,
-        start:     datetime,
-        end:       datetime,
-        step:      int = MIN_STEP,
-        max_runs:  int = 50,          # cap for demo / time budget
-        progress_cb = None,           # optional callback(pct, msg)
+        ticker: str,
+        interval: str,
+        start: datetime,
+        end: datetime,
+        step: int = MIN_STEP,
+        max_runs: int = 50,  # cap for demo / time budget
+        progress_cb=None,  # optional callback(pct, msg)
     ) -> dict:
         """
         Execute the backtest.
@@ -306,13 +316,15 @@ class BacktestEngine:
             if progress_cb:
                 progress_cb(pct, msg)
             # Build a clean progress bar
-            filled = int(pct / 5)   # 20 chars wide
-            bar    = "█" * filled + "░" * (20 - filled)
+            filled = int(pct / 5)  # 20 chars wide
+            bar = "█" * filled + "░" * (20 - filled)
             if run_num and total_runs:
                 elapsed = time.time() - run_start_time
-                eta     = (elapsed / run_num * (total_runs - run_num)) if run_num else 0
+                eta = (elapsed / run_num * (total_runs - run_num)) if run_num else 0
                 eta_str = f"  ETA {int(eta//60)}m{int(eta%60):02d}s" if eta > 0 else ""
-                log.info(f"|{bar}| {pct:5.1f}%  run {run_num}/{total_runs}{eta_str}  — {msg}")
+                log.info(
+                    f"|{bar}| {pct:5.1f}%  run {run_num}/{total_runs}{eta_str}  — {msg}"
+                )
             else:
                 log.info(f"|{bar}| {pct:5.1f}%  — {msg}")
 
@@ -322,28 +334,32 @@ class BacktestEngine:
         if df.empty:
             return {"error": f"No data for {ticker} ({interval})"}
 
-        market   = dp.get_market(yf_symbol)
-        horizon  = OUTCOME_HORIZON.get(interval, 2)
-        n_rows   = len(df)
+        market = dp.get_market(yf_symbol)
+        horizon = OUTCOME_HORIZON.get(interval, 2)
+        n_rows = len(df)
 
         # How many windows can we actually run?
         possible_starts = list(range(0, n_rows - WINDOW_SIZE - horizon, step))
-        run_indices     = possible_starts[:max_runs]
-        total_runs      = len(run_indices)
+        run_indices = possible_starts[:max_runs]
+        total_runs = len(run_indices)
 
         if total_runs == 0:
-            return {"error": f"Not enough data for backtest (need at least {WINDOW_SIZE + horizon} rows, got {n_rows})"}
+            return {
+                "error": f"Not enough data for backtest (need at least {WINDOW_SIZE + horizon} rows, got {n_rows})"
+            }
 
-        _progress(5, f"Starting {total_runs} pipeline runs on {display_name} ({market})")
+        _progress(
+            5, f"Starting {total_runs} pipeline runs on {display_name} ({market})"
+        )
 
-        records:         list[dict] = []
-        errors:          int        = 0
-        skipped_windows: int        = 0
-        start_time:      float      = time.time()
+        records: list[dict] = []
+        errors: int = 0
+        skipped_windows: int = 0
+        start_time: float = time.time()
 
         for run_num, window_start in enumerate(run_indices):
-            window_end   = window_start + WINDOW_SIZE
-            signal_idx   = window_end - 1          # last candle in window
+            window_end = window_start + WINDOW_SIZE
+            signal_idx = window_end - 1  # last candle in window
             outcome_label = _label_outcome(df, signal_idx, horizon)
 
             if outcome_label is None:
@@ -354,22 +370,28 @@ class BacktestEngine:
 
             # Build kline_data dict (same format QuantAgent expects)
             kline_data = {
-                "Datetime": window_df["Datetime"].dt.strftime("%Y-%m-%d %H:%M:%S").tolist(),
-                "Open":     window_df["Open"].tolist(),
-                "High":     window_df["High"].tolist(),
-                "Low":      window_df["Low"].tolist(),
-                "Close":    window_df["Close"].tolist(),
+                "Datetime": window_df["Datetime"]
+                .dt.strftime("%Y-%m-%d %H:%M:%S")
+                .tolist(),
+                "Open": window_df["Open"].tolist(),
+                "High": window_df["High"].tolist(),
+                "Low": window_df["Low"].tolist(),
+                "Close": window_df["Close"].tolist(),
             }
 
             # Build display timeframe string
             tf_display = interval
-            if interval.endswith("h"):   tf_display += "our"
-            elif interval.endswith("m"): tf_display += "in"
-            elif interval.endswith("d"): tf_display += "ay"
+            if interval.endswith("h"):
+                tf_display += "our"
+            elif interval.endswith("m"):
+                tf_display += "in"
+            elif interval.endswith("d"):
+                tf_display += "ay"
 
             # Pre-generate images (same as web_interface.run_analysis)
             try:
                 import static_util
+
                 p_img = static_util.generate_kline_image(kline_data)
                 t_img = static_util.generate_trend_image(kline_data)
             except Exception:
@@ -377,13 +399,13 @@ class BacktestEngine:
                 t_img = {"trend_image": None}
 
             initial_state = {
-                "kline_data":    kline_data,
+                "kline_data": kline_data,
                 "analysis_results": None,
-                "messages":      [],
-                "time_frame":    tf_display,
-                "stock_name":    display_name,
+                "messages": [],
+                "time_frame": tf_display,
+                "stock_name": display_name,
                 "pattern_image": p_img.get("pattern_image"),
-                "trend_image":   t_img.get("trend_image"),
+                "trend_image": t_img.get("trend_image"),
             }
 
             try:
@@ -395,60 +417,66 @@ class BacktestEngine:
                     errors += 1
                     continue
 
-                signal  = parsed["decision"]
-                entry   = float(df["Close"].iloc[signal_idx])
-                exit_p  = float(df["Close"].iloc[signal_idx + horizon])
+                signal = parsed["decision"]
+                entry = float(df["Close"].iloc[signal_idx])
+                exit_p = float(df["Close"].iloc[signal_idx + horizon])
                 pnl_mag = abs(exit_p - entry) / entry  # fractional move
 
                 # Step 6: Skip trivially small moves — they are noise, not signal.
                 if signal != "HOLD" and pnl_mag < MIN_MOVE_THRESHOLD:
                     skipped_windows += 1
-                    log.info(f"Run {run_num+1}: skipped (move {pnl_mag:.4%} < threshold)")
+                    log.info(
+                        f"Run {run_num+1}: skipped (move {pnl_mag:.4%} < threshold)"
+                    )
                     continue
 
                 # Step 4: HOLD = no position, no P&L, no accuracy contribution.
                 # Just record it for hold_rate tracking. No hold_correct logic.
                 if signal == "HOLD":
-                    records.append({
-                        "run":             run_num,
-                        "window_start":    str(df["Datetime"].iloc[window_start]),
-                        "signal_time":     str(df["Datetime"].iloc[signal_idx]),
-                        "signal":          "HOLD",
-                        "outcome":         outcome_label,
-                        "correct":         False,
-                        "pnl":             0.0,
-                        "pnl_magnitude":   pnl_mag,
-                        "entry_price":     entry,
-                        "exit_price":      exit_p,
-                        "unanimous":       final_state.get("unanimous_signal", False),
-                        "indicator_report": final_state.get("indicator_report", ""),
-                        "pattern_report":   final_state.get("pattern_report",  ""),
-                        "trend_report":     final_state.get("trend_report",    ""),
-                    })
+                    records.append(
+                        {
+                            "run": run_num,
+                            "window_start": str(df["Datetime"].iloc[window_start]),
+                            "signal_time": str(df["Datetime"].iloc[signal_idx]),
+                            "signal": "HOLD",
+                            "outcome": outcome_label,
+                            "correct": False,
+                            "pnl": 0.0,
+                            "pnl_magnitude": pnl_mag,
+                            "entry_price": entry,
+                            "exit_price": exit_p,
+                            "unanimous": final_state.get("unanimous_signal", False),
+                            "indicator_report": final_state.get("indicator_report", ""),
+                            "pattern_report": final_state.get("pattern_report", ""),
+                            "trend_report": final_state.get("trend_report", ""),
+                        }
+                    )
                     continue
 
                 correct = signal == outcome_label
-                pnl     = pnl_mag if correct else -pnl_mag
+                pnl = pnl_mag if correct else -pnl_mag
 
                 # Track whether all 3 agents unanimously agreed direction
                 unanimous = final_state.get("unanimous_signal", False)
 
-                records.append({
-                    "run":             run_num,
-                    "window_start":    str(df["Datetime"].iloc[window_start]),
-                    "signal_time":     str(df["Datetime"].iloc[signal_idx]),
-                    "signal":          signal,
-                    "outcome":         outcome_label,
-                    "correct":         correct,
-                    "pnl":             pnl,
-                    "pnl_magnitude":   pnl_mag,
-                    "entry_price":     entry,
-                    "exit_price":      exit_p,
-                    "unanimous":       unanimous,
-                    "indicator_report": final_state.get("indicator_report", ""),
-                    "pattern_report":   final_state.get("pattern_report",  ""),
-                    "trend_report":     final_state.get("trend_report",    ""),
-                })
+                records.append(
+                    {
+                        "run": run_num,
+                        "window_start": str(df["Datetime"].iloc[window_start]),
+                        "signal_time": str(df["Datetime"].iloc[signal_idx]),
+                        "signal": signal,
+                        "outcome": outcome_label,
+                        "correct": correct,
+                        "pnl": pnl,
+                        "pnl_magnitude": pnl_mag,
+                        "entry_price": entry,
+                        "exit_price": exit_p,
+                        "unanimous": unanimous,
+                        "indicator_report": final_state.get("indicator_report", ""),
+                        "pattern_report": final_state.get("pattern_report", ""),
+                        "trend_report": final_state.get("trend_report", ""),
+                    }
+                )
 
             except Exception as exc:
                 errors += 1
@@ -457,7 +485,7 @@ class BacktestEngine:
             pct = 5 + 90 * (run_num + 1) / total_runs
             elapsed = time.time() - start_time
             eta = (elapsed / (run_num + 1)) * (total_runs - run_num - 1)
-            _progress(pct, f"{len(records)} signals collected", run_num+1, total_runs)
+            _progress(pct, f"{len(records)} signals collected", run_num + 1, total_runs)
 
         # Step 6: Log skip rate and warn if too high
         total_evaluated = len(records) + skipped_windows
@@ -469,12 +497,16 @@ class BacktestEngine:
                 f"Consider lowering the threshold."
             )
         else:
-            log.info(f"Skip rate: {skipped_windows}/{total_evaluated} ({skip_rate:.0%})")
+            log.info(
+                f"Skip rate: {skipped_windows}/{total_evaluated} ({skip_rate:.0%})"
+            )
 
         _progress(95, "Computing statistics and saving results…")
 
         if not records:
-            return {"error": "All pipeline runs failed or produced no parseable decisions"}
+            return {
+                "error": "All pipeline runs failed or produced no parseable decisions"
+            }
 
         # Full-agent stats
         agent_stats = _compute_stats(records, interval)
@@ -493,13 +525,20 @@ class BacktestEngine:
 
         # Fix 4: Auto-train prediction layer on this backtest and compute refined stats
         prediction_stats = None
-        prediction_meta  = None
+        prediction_meta = None
         try:
             from prediction_layer import PredictionLayer
+
             pred_layer = PredictionLayer()
-            train_result = pred_layer.train(result_for_train := {"records": records, "meta": {
-                "ticker": ticker, "interval": interval,
-            }})
+            train_result = pred_layer.train(
+                result_for_train := {
+                    "records": records,
+                    "meta": {
+                        "ticker": ticker,
+                        "interval": interval,
+                    },
+                }
+            )
             if train_result.get("success"):
                 # Re-predict each directional record with the trained model
                 pred_records = []
@@ -507,25 +546,34 @@ class BacktestEngine:
                     if r["signal"] not in ("LONG", "SHORT"):
                         pred_records.append(r)  # HOLD passes through
                         continue
-                    pred = pred_layer.predict({
-                        "decision":          r["signal"],
-                        "indicator_report":  r.get("indicator_report", ""),
-                        "pattern_report":    r.get("pattern_report",  ""),
-                        "trend_report":      r.get("trend_report",    ""),
-                        "risk_reward_ratio": 1.5,
-                    })
+                    pred = pred_layer.predict(
+                        {
+                            "decision": r["signal"],
+                            "indicator_direction": r.get("indicator_direction"),
+                            "indicator_confidence": r.get("indicator_confidence"),
+                            "pattern_direction": r.get("pattern_direction"),
+                            "pattern_confidence": r.get("pattern_confidence"),
+                            "trend_direction": r.get("trend_direction"),
+                            "trend_confidence": r.get("trend_confidence"),
+                        }
+                    )
                     refined_signal = pred["decision"]
                     correct = refined_signal == r["outcome"]
-                    pnl     = r["pnl_magnitude"] if correct else -r["pnl_magnitude"]
-                    pred_records.append({**r,
-                        "signal":  refined_signal,
-                        "correct": correct,
-                        "pnl":     pnl,
-                    })
+                    pnl = r["pnl_magnitude"] if correct else -r["pnl_magnitude"]
+                    pred_records.append(
+                        {
+                            **r,
+                            "signal": refined_signal,
+                            "correct": correct,
+                            "pnl": pnl,
+                        }
+                    )
                 prediction_stats = _compute_stats(pred_records, interval)
                 prediction_stats["variant"] = "quantagent_plus_prediction"
                 prediction_meta = train_result
-                log.ok(f"Prediction layer: train_acc={train_result.get('train_accuracy', 0):.1%}")
+                log.ok(
+                    f"Prediction layer: train_acc={train_result.get('train_accuracy', 0):.1%}"
+                )
         except Exception as exc:
             log.warning(f"Prediction layer skipped: {exc}")
 
@@ -538,38 +586,41 @@ class BacktestEngine:
 
         result = {
             "meta": {
-                "ticker":           ticker,
-                "yf_symbol":        yf_symbol,
-                "display_name":     display_name,
-                "market":           market,
-                "interval":         interval,
-                "start":            str(start.date()),
-                "end":              str(end.date()),
-                "total_runs":       total_runs,
-                "errors":           errors,
-                "outcome_horizon":  horizon,
-                "skipped_windows":  skipped_windows,
-                "skip_rate":        round(skip_rate, 4),
-                "run_at":           datetime.now().isoformat(),
+                "ticker": ticker,
+                "yf_symbol": yf_symbol,
+                "display_name": display_name,
+                "market": market,
+                "interval": interval,
+                "start": str(start.date()),
+                "end": str(end.date()),
+                "total_runs": total_runs,
+                "errors": errors,
+                "outcome_horizon": horizon,
+                "skipped_windows": skipped_windows,
+                "skip_rate": round(skip_rate, 4),
+                "run_at": datetime.now().isoformat(),
             },
-            "agent_stats":      agent_stats,
-            "baseline_stats":   baseline_stats,
+            "agent_stats": agent_stats,
+            "baseline_stats": baseline_stats,
             "prediction_stats": prediction_stats,
-            "prediction_meta":  prediction_meta,
-            "pnl_curve":        pnl_curve,
+            "prediction_meta": prediction_meta,
+            "pnl_curve": pnl_curve,
             "rolling_accuracy": rolling_acc,
-            "records":          records,
+            "records": records,
         }
 
         # Save to disk
-        filename = (
-            f"{ticker}_{interval}_{start.strftime('%Y%m%d')}_{end.strftime('%Y%m%d')}.json"
-        )
+        filename = f"{ticker}_{interval}_{start.strftime('%Y%m%d')}_{end.strftime('%Y%m%d')}.json"
         out_path = RESULTS_DIR / filename
         with open(out_path, "w") as f:
             json.dump(result, f, indent=2, default=str)
 
-        _progress(100, f"Complete — {len(records)} signals  |  accuracy={agent_stats['accuracy']:.1%}  sharpe={agent_stats['sharpe_ratio']:.2f}", total_runs, total_runs)
+        _progress(
+            100,
+            f"Complete — {len(records)} signals  |  accuracy={agent_stats['accuracy']:.1%}  sharpe={agent_stats['sharpe_ratio']:.2f}",
+            total_runs,
+            total_runs,
+        )
         log.ok(f"Results saved → {out_path.name}")
 
         return result
@@ -579,6 +630,7 @@ class BacktestEngine:
 # Results loader (used by web API)
 # ---------------------------------------------------------------------------
 
+
 def list_backtest_results() -> list[dict]:
     """Return a list of available saved backtest result summaries."""
     results = []
@@ -586,21 +638,23 @@ def list_backtest_results() -> list[dict]:
         try:
             with open(path) as f:
                 data = json.load(f)
-            meta  = data.get("meta", {})
+            meta = data.get("meta", {})
             stats = data.get("agent_stats", {})
-            results.append({
-                "filename":     path.name,
-                "ticker":       meta.get("ticker"),
-                "display_name": meta.get("display_name"),
-                "market":       meta.get("market"),
-                "interval":     meta.get("interval"),
-                "start":        meta.get("start"),
-                "end":          meta.get("end"),
-                "total_signals": stats.get("total_signals"),
-                "accuracy":     stats.get("accuracy"),
-                "sharpe_ratio": stats.get("sharpe_ratio"),
-                "run_at":       meta.get("run_at"),
-            })
+            results.append(
+                {
+                    "filename": path.name,
+                    "ticker": meta.get("ticker"),
+                    "display_name": meta.get("display_name"),
+                    "market": meta.get("market"),
+                    "interval": meta.get("interval"),
+                    "start": meta.get("start"),
+                    "end": meta.get("end"),
+                    "total_signals": stats.get("total_signals"),
+                    "accuracy": stats.get("accuracy"),
+                    "sharpe_ratio": stats.get("sharpe_ratio"),
+                    "run_at": meta.get("run_at"),
+                }
+            )
         except Exception:
             pass
     return results

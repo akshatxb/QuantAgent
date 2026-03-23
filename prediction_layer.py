@@ -33,6 +33,7 @@ from typing import Any
 
 import numpy as np
 from qa_logger import get_logger
+
 _log = get_logger("Prediction")
 
 MODEL_PATH = Path("data/prediction_model.json")
@@ -44,14 +45,37 @@ MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 # Keywords that carry directional signal in the reports
 BULLISH_WORDS = [
-    "bullish", "upward", "uptrend", "breakout", "bounce", "support holding",
-    "golden cross", "oversold", "buy signal", "long", "positive momentum",
-    "higher high", "higher low", "ascending", "reversal upward",
+    "bullish",
+    "upward",
+    "uptrend",
+    "breakout",
+    "bounce",
+    "support holding",
+    "golden cross",
+    "oversold",
+    "buy signal",
+    "long",
+    "positive momentum",
+    "higher high",
+    "higher low",
+    "ascending",
+    "reversal upward",
 ]
 BEARISH_WORDS = [
-    "bearish", "downward", "downtrend", "breakdown", "resistance", "overbought",
-    "death cross", "sell signal", "short", "negative momentum",
-    "lower high", "lower low", "descending", "reversal downward",
+    "bearish",
+    "downward",
+    "downtrend",
+    "breakdown",
+    "resistance",
+    "overbought",
+    "death cross",
+    "sell signal",
+    "short",
+    "negative momentum",
+    "lower high",
+    "lower low",
+    "descending",
+    "reversal downward",
 ]
 
 # Risk-reward ratio parser
@@ -90,62 +114,59 @@ def _parse_rr(rr_raw: Any) -> float:
 
 def extract_features(agent_outputs: dict) -> np.ndarray:
     """
-    Build a 12-dimensional feature vector from QuantAgent's output dict.
-
-    Features:
-      0  raw_decision_long  — 1 if LONG, 0 if SHORT
-      1  indicator_bull     — bullish keyword count in indicator report (normalised)
-      2  indicator_bear     — bearish keyword count in indicator report (normalised)
-      3  indicator_net      — (bull - bear) / (bull + bear + 1)
-      4  pattern_bull
-      5  pattern_bear
-      6  pattern_net
-      7  trend_bull
-      8  trend_bear
-      9  trend_net
-      10 rr_ratio           — risk-reward ratio (higher = more confident signal)
-      11 report_agreement   — fraction of 3 reports that agree with raw decision
+    Structured + numeric features (NO keyword parsing).
     """
-    raw_decision = (agent_outputs.get("decision") or "").upper()
-    ind_report   = agent_outputs.get("indicator_report", "") or ""
-    pat_report   = agent_outputs.get("pattern_report",  "") or ""
-    trn_report   = agent_outputs.get("trend_report",    "") or ""
-    rr_raw       = agent_outputs.get("risk_reward_ratio", 1.5)
 
+    def enc_dir(d):
+        d = (d or "").upper()
+        return 1.0 if d == "BULLISH" else -1.0 if d == "BEARISH" else 0.0
+
+    def enc_conf(c):
+        c = (c or "").upper()
+        return {"HIGH": 1.0, "MEDIUM": 0.6, "LOW": 0.3}.get(c, 0.5)
+
+    # Structured inputs
+    ind_dir = enc_dir(agent_outputs.get("indicator_direction"))
+    ind_conf = enc_conf(agent_outputs.get("indicator_confidence"))
+
+    pat_dir = enc_dir(agent_outputs.get("pattern_direction"))
+    pat_conf = enc_conf(agent_outputs.get("pattern_confidence"))
+
+    trn_dir = enc_dir(agent_outputs.get("trend_direction"))
+    trn_conf = enc_conf(agent_outputs.get("trend_confidence"))
+
+    # Raw decision
+    raw_decision = (agent_outputs.get("decision") or "").upper()
     is_long = 1.0 if raw_decision == "LONG" else 0.0
 
-    def _norm_counts(text):
-        bull, bear = _count_sentiment(text)
-        total = bull + bear + 1
-        return bull / total, bear / total, (bull - bear) / total
+    # Agreement score
+    dirs = [ind_dir, pat_dir, trn_dir]
+    agreement = sum((d > 0 and is_long) or (d < 0 and not is_long) for d in dirs) / 3.0
 
-    i_bull, i_bear, i_net = _norm_counts(ind_report)
-    p_bull, p_bear, p_net = _norm_counts(pat_report)
-    t_bull, t_bear, t_net = _norm_counts(trn_report)
-    rr = min(_parse_rr(rr_raw), 3.0) / 3.0  # normalise to [0, 1]
-
-    # Agreement: how many of the 3 reports lean the same way as raw decision
-    agreements = 0
-    for net in [i_net, p_net, t_net]:
-        if is_long and net > 0:
-            agreements += 1
-        elif not is_long and net < 0:
-            agreements += 1
-    agreement = agreements / 3.0
-
-    return np.array([
-        is_long, i_bull, i_bear, i_net,
-        p_bull,  p_bear, p_net,
-        t_bull,  t_bear, t_net,
-        rr,      agreement,
-    ], dtype=np.float32)
+    return np.array(
+        [
+            is_long,
+            ind_dir,
+            ind_conf,
+            pat_dir,
+            pat_conf,
+            trn_dir,
+            trn_conf,
+            agreement,
+        ],
+        dtype=np.float32,
+    )
 
 
 FEATURE_NAMES = [
-    "raw_long", "ind_bull", "ind_bear", "ind_net",
-    "pat_bull", "pat_bear", "pat_net",
-    "trn_bull", "trn_bear", "trn_net",
-    "rr_ratio", "report_agreement",
+    "raw_long",
+    "ind_dir",
+    "ind_conf",
+    "pat_dir",
+    "pat_conf",
+    "trn_dir",
+    "trn_conf",
+    "agreement",
 ]
 
 N_FEATURES = len(FEATURE_NAMES)
@@ -155,13 +176,14 @@ N_FEATURES = len(FEATURE_NAMES)
 # Logistic Regression (pure numpy — no sklearn needed)
 # ---------------------------------------------------------------------------
 
+
 def _sigmoid(z: np.ndarray) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-np.clip(z, -500, 500)))
 
 
-def _train_logistic(X: np.ndarray, y: np.ndarray,
-                    lr: float = 0.1, epochs: int = 500,
-                    l2: float = 0.01) -> tuple[np.ndarray, float]:
+def _train_logistic(
+    X: np.ndarray, y: np.ndarray, lr: float = 0.1, epochs: int = 500, l2: float = 0.01
+) -> tuple[np.ndarray, float]:
     """
     Train a binary logistic regression with L2 regularisation.
     y: 1 = LONG, 0 = SHORT
@@ -172,9 +194,9 @@ def _train_logistic(X: np.ndarray, y: np.ndarray,
     b = 0.0
 
     for _ in range(epochs):
-        z    = X @ w + b
-        p    = _sigmoid(z)
-        err  = p - y
+        z = X @ w + b
+        p = _sigmoid(z)
+        err = p - y
         grad_w = (X.T @ err) / n + l2 * w
         grad_b = err.mean()
         w -= lr * grad_w
@@ -187,6 +209,7 @@ def _train_logistic(X: np.ndarray, y: np.ndarray,
 # PredictionLayer class
 # ---------------------------------------------------------------------------
 
+
 class PredictionLayer:
     """
     Wraps the trained logistic regression model.
@@ -195,11 +218,11 @@ class PredictionLayer:
     """
 
     def __init__(self):
-        self.weights:      np.ndarray | None = None
-        self.bias:         float             = 0.0
-        self.feature_importance: dict        = {}
-        self.trained:      bool              = False
-        self.train_meta:   dict              = {}
+        self.weights: np.ndarray | None = None
+        self.bias: float = 0.0
+        self.feature_importance: dict = {}
+        self.trained: bool = False
+        self.train_meta: dict = {}
 
     # ------------------------------------------------------------------
     # Training
@@ -213,19 +236,27 @@ class PredictionLayer:
         """
         records = backtest_result.get("records", [])
         # Filter out HOLD signals before training
-        directional_records = [r for r in records if r.get("signal") in ("LONG", "SHORT")]
+        directional_records = [
+            r for r in records if r.get("signal") in ("LONG", "SHORT")
+        ]
         if len(directional_records) < 10:
-            return {"error": f"Need at least 10 directional records, got {len(directional_records)} (total {len(records)})"}
+            return {
+                "error": f"Need at least 10 directional records, got {len(directional_records)} (total {len(records)})"
+            }
 
         X_list, y_list = [], []
         for r in directional_records:
-            features = extract_features({
-                "decision":          r.get("signal", ""),
-                "indicator_report":  r.get("indicator_report", ""),
-                "pattern_report":    r.get("pattern_report",  ""),
-                "trend_report":      r.get("trend_report",    ""),
-                "risk_reward_ratio": 1.5,
-            })
+            features = extract_features(
+                {
+                    "decision": r.get("signal", ""),
+                    "indicator_direction": r.get("indicator_direction"),
+                    "indicator_confidence": r.get("indicator_confidence"),
+                    "pattern_direction": r.get("pattern_direction"),
+                    "pattern_confidence": r.get("pattern_confidence"),
+                    "trend_direction": r.get("trend_direction"),
+                    "trend_confidence": r.get("trend_confidence"),
+                }
+            )
             label = 1.0 if r.get("outcome") == "LONG" else 0.0
             X_list.append(features)
             y_list.append(label)
@@ -235,7 +266,7 @@ class PredictionLayer:
 
         # Normalise features (mean/std)
         self.feat_mean = X.mean(axis=0)
-        self.feat_std  = X.std(axis=0) + 1e-8
+        self.feat_std = X.std(axis=0) + 1e-8
         X_norm = (X - self.feat_mean) / self.feat_std
 
         self.weights, self.bias = _train_logistic(X_norm, y)
@@ -253,19 +284,19 @@ class PredictionLayer:
 
         meta = backtest_result.get("meta", {})
         self.train_meta = {
-            "ticker":         meta.get("ticker"),
-            "interval":       meta.get("interval"),
-            "n_samples":      len(directional_records),
-            "hold_excluded":  len(records) - len(directional_records),
+            "ticker": meta.get("ticker"),
+            "interval": meta.get("interval"),
+            "n_samples": len(directional_records),
+            "hold_excluded": len(records) - len(directional_records),
             "train_accuracy": round(train_acc, 4),
         }
 
         self.save()
         return {
-            "success":            True,
-            "train_accuracy":     round(train_acc, 4),
-            "n_samples":          len(directional_records),
-            "hold_excluded":      len(records) - len(directional_records),
+            "success": True,
+            "train_accuracy": round(train_acc, 4),
+            "n_samples": len(directional_records),
+            "hold_excluded": len(records) - len(directional_records),
             "feature_importance": self.feature_importance,
         }
 
@@ -293,11 +324,11 @@ class PredictionLayer:
         if not self.trained or self.weights is None:
             # No model yet — pass through raw decision with neutral confidence
             return {
-                "decision":    raw_decision,
-                "confidence":  0.5,
+                "decision": raw_decision,
+                "confidence": 0.5,
                 "raw_decision": raw_decision,
                 "was_flipped": False,
-                "model_used":  False,
+                "model_used": False,
             }
 
         features = extract_features(agent_outputs).astype(np.float64)
@@ -308,15 +339,15 @@ class PredictionLayer:
         confidence = 0.5 + abs(prob_long - 0.5)
 
         refined = "LONG" if prob_long >= 0.5 else "SHORT"
-        was_flipped = (refined != raw_decision)
+        was_flipped = refined != raw_decision
 
         return {
-            "decision":     refined,
-            "confidence":   round(confidence, 4),
-            "prob_long":    round(prob_long, 4),
+            "decision": refined,
+            "confidence": round(confidence, 4),
+            "prob_long": round(prob_long, 4),
             "raw_decision": raw_decision,
-            "was_flipped":  was_flipped,
-            "model_used":   True,
+            "was_flipped": was_flipped,
+            "model_used": True,
         }
 
     # ------------------------------------------------------------------
@@ -328,17 +359,19 @@ class PredictionLayer:
         if not self.trained:
             return
         data = {
-            "weights":            self.weights.tolist(),
-            "bias":               self.bias,
-            "feat_mean":          self.feat_mean.tolist(),
-            "feat_std":           self.feat_std.tolist(),
+            "weights": self.weights.tolist(),
+            "bias": self.bias,
+            "feat_mean": self.feat_mean.tolist(),
+            "feat_std": self.feat_std.tolist(),
             "feature_importance": self.feature_importance,
-            "feature_names":      FEATURE_NAMES,
-            "train_meta":         self.train_meta,
+            "feature_names": FEATURE_NAMES,
+            "train_meta": self.train_meta,
         }
         with open(path, "w") as f:
             json.dump(data, f, indent=2)
-        _log.ok(f"Model saved → {path.name} (accuracy={self.train_meta.get('train_accuracy',0):.1%})")
+        _log.ok(
+            f"Model saved → {path.name} (accuracy={self.train_meta.get('train_accuracy',0):.1%})"
+        )
 
     def load(self, path: Path = MODEL_PATH) -> bool:
         """Load model weights from JSON. Returns True if successful."""
@@ -347,13 +380,13 @@ class PredictionLayer:
         try:
             with open(path) as f:
                 data = json.load(f)
-            self.weights            = np.array(data["weights"])
-            self.bias               = data["bias"]
-            self.feat_mean          = np.array(data["feat_mean"])
-            self.feat_std           = np.array(data["feat_std"])
+            self.weights = np.array(data["weights"])
+            self.bias = data["bias"]
+            self.feat_mean = np.array(data["feat_mean"])
+            self.feat_std = np.array(data["feat_std"])
             self.feature_importance = data.get("feature_importance", {})
-            self.train_meta         = data.get("train_meta", {})
-            self.trained            = True
+            self.train_meta = data.get("train_meta", {})
+            self.trained = True
             _log.ok(f"Model loaded from {path.name}")
             return True
         except Exception as e:
@@ -363,7 +396,7 @@ class PredictionLayer:
     def status(self) -> dict:
         """Return a summary of the model's current state."""
         return {
-            "trained":            self.trained,
-            "train_meta":         self.train_meta,
+            "trained": self.trained,
+            "train_meta": self.train_meta,
             "feature_importance": self.feature_importance,
         }

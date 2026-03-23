@@ -1,0 +1,120 @@
+{
+  "meta": {
+    "backtest_file": "KOTAKBANK_1h_20250101_20260323.json",
+    "ticker": "KOTAKBANK",
+    "display_name": "Kotak Mahindra Bank",
+    "market": "NSE",
+    "interval": "1h",
+    "n_records": 300,
+    "n_directional": 215,
+    "hold_count": 85,
+    "hold_rate": 0.2833,
+    "run_at": "2026-03-24T02:37:16.053700"
+  },
+  "variants": [
+    {
+      "total_signals": 300,
+      "active_signals": 300,
+      "hold_signals": 0,
+      "correct": 161,
+      "accuracy": 0.5367,
+      "filtered_accuracy": 0.5367,
+      "sharpe_ratio": 1.4028,
+      "cumulative_pnl": 0.167367,
+      "confusion_matrix": {
+        "TP": 43,
+        "TN": 118,
+        "FP": 102,
+        "FN": 37
+      },
+      "precision": 0.2966,
+      "recall": 0.5375,
+      "f1_score": 0.3822,
+      "long_accuracy": 0.2966,
+      "short_accuracy": 0.7613,
+      "long_signals": 145,
+      "short_signals": 155,
+      "variant": "random_baseline",
+      "label": "Random baseline",
+      "description": "Coin-flip LONG/SHORT \u2014 the floor all agents must beat"
+    },
+    {
+      "total_signals": 300,
+      "active_signals": 300,
+      "hold_signals": 0,
+      "correct": 80,
+      "accuracy": 0.2667,
+      "filtered_accuracy": 0.2667,
+      "sharpe_ratio": -1.178,
+      "cumulative_pnl": -0.140708,
+      "confusion_matrix": {
+        "TP": 80,
+        "TN": 0,
+        "FP": 220,
+        "FN": 0
+      },
+      "precision": 0.2667,
+      "recall": 1.0,
+      "f1_score": 0.4211,
+      "long_accuracy": 0.2667,
+      "short_accuracy": 0.0,
+      "long_signals": 300,
+      "short_signals": 0,
+      "variant": "indicators_only",
+      "label": "Indicators only",
+      "description": "Keyword-majority heuristic over indicator report \u2014 no LLM"
+    },
+    {
+      "total_signals": 215,
+      "active_signals": 215,
+      "hold_signals": 0,
+      "correct": 130,
+      "accuracy": 0.6047,
+      "filtered_accuracy": 0.6047,
+      "sharpe_ratio": 2.0159,
+      "cumulative_pnl": 0.174255,
+      "confusion_matrix": {
+        "TP": 28,
+        "TN": 102,
+        "FP": 57,
+        "FN": 28
+      },
+      "precision": 0.3294,
+      "recall": 0.5,
+      "f1_score": 0.3972,
+      "long_accuracy": 0.3294,
+      "short_accuracy": 0.7846,
+      "long_signals": 85,
+      "short_signals": 130,
+      "variant": "full_quantagent",
+      "label": "Full QuantAgent",
+      "description": "Complete pipeline: indicator + pattern + trend agents \u2192 LLM decision (directional calls only)"
+    }
+  ],
+  "comparison": {
+    "accuracy": {
+      "random_baseline": 0.5367,
+      "indicators_only": 0.2667,
+      "full_quantagent": 0.6047
+    },
+    "sharpe_ratio": {
+      "random_baseline": 1.4028,
+      "indicators_only": -1.178,
+      "full_quantagent": 2.0159
+    },
+    "f1_score": {
+      "random_baseline": 0.3822,
+      "indicators_only": 0.4211,
+      "full_quantagent": 0.3972
+    },
+    "cum_pnl": {
+      "random_baseline": 0.167367,
+      "indicators_only": -0.140708,
+      "full_quantagent": 0.174255
+    }
+  },
+  "best_variant": "full_quantagent",
+  "lift_vs_random_pp": 6.8,
+  "lift_vs_indicators_pp": 33.8,
+  "has_prediction_layer": false
+}

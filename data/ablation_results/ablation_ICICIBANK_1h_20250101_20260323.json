@@ -1,0 +1,120 @@
+{
+  "meta": {
+    "backtest_file": "ICICIBANK_1h_20250101_20260323.json",
+    "ticker": "ICICIBANK",
+    "display_name": "ICICI Bank",
+    "market": "NSE",
+    "interval": "1h",
+    "n_records": 300,
+    "n_directional": 232,
+    "hold_count": 68,
+    "hold_rate": 0.2267,
+    "run_at": "2026-03-24T02:37:21.177933"
+  },
+  "variants": [
+    {
+      "total_signals": 300,
+      "active_signals": 300,
+      "hold_signals": 0,
+      "correct": 149,
+      "accuracy": 0.4967,
+      "filtered_accuracy": 0.4967,
+      "sharpe_ratio": -0.7734,
+      "cumulative_pnl": -0.089959,
+      "confusion_matrix": {
+        "TP": 34,
+        "TN": 115,
+        "FP": 111,
+        "FN": 40
+      },
+      "precision": 0.2345,
+      "recall": 0.4595,
+      "f1_score": 0.3105,
+      "long_accuracy": 0.2345,
+      "short_accuracy": 0.7419,
+      "long_signals": 145,
+      "short_signals": 155,
+      "variant": "random_baseline",
+      "label": "Random baseline",
+      "description": "Coin-flip LONG/SHORT \u2014 the floor all agents must beat"
+    },
+    {
+      "total_signals": 300,
+      "active_signals": 300,
+      "hold_signals": 0,
+      "correct": 74,
+      "accuracy": 0.2467,
+      "filtered_accuracy": 0.2467,
+      "sharpe_ratio": -1.8262,
+      "cumulative_pnl": -0.211283,
+      "confusion_matrix": {
+        "TP": 74,
+        "TN": 0,
+        "FP": 226,
+        "FN": 0
+      },
+      "precision": 0.2467,
+      "recall": 1.0,
+      "f1_score": 0.3957,
+      "long_accuracy": 0.2467,
+      "short_accuracy": 0.0,
+      "long_signals": 300,
+      "short_signals": 0,
+      "variant": "indicators_only",
+      "label": "Indicators only",
+      "description": "Keyword-majority heuristic over indicator report \u2014 no LLM"
+    },
+    {
+      "total_signals": 232,
+      "active_signals": 232,
+      "hold_signals": 0,
+      "correct": 128,
+      "accuracy": 0.5517,
+      "filtered_accuracy": 0.5517,
+      "sharpe_ratio": 0.4566,
+      "cumulative_pnl": 0.039415,
+      "confusion_matrix": {
+        "TP": 33,
+        "TN": 95,
+        "FP": 79,
+        "FN": 25
+      },
+      "precision": 0.2946,
+      "recall": 0.569,
+      "f1_score": 0.3882,
+      "long_accuracy": 0.2946,
+      "short_accuracy": 0.7917,
+      "long_signals": 112,
+      "short_signals": 120,
+      "variant": "full_quantagent",
+      "label": "Full QuantAgent",
+      "description": "Complete pipeline: indicator + pattern + trend agents \u2192 LLM decision (directional calls only)"
+    }
+  ],
+  "comparison": {
+    "accuracy": {
+      "random_baseline": 0.4967,
+      "indicators_only": 0.2467,
+      "full_quantagent": 0.5517
+    },
+    "sharpe_ratio": {
+      "random_baseline": -0.7734,
+      "indicators_only": -1.8262,
+      "full_quantagent": 0.4566
+    },
+    "f1_score": {
+      "random_baseline": 0.3105,
+      "indicators_only": 0.3957,
+      "full_quantagent": 0.3882
+    },
+    "cum_pnl": {
+      "random_baseline": -0.089959,
+      "indicators_only": -0.211283,
+      "full_quantagent": 0.039415
+    }
+  },
+  "best_variant": "full_quantagent",
+  "lift_vs_random_pp": 5.5,
+  "lift_vs_indicators_pp": 30.5,
+  "has_prediction_layer": false
+}

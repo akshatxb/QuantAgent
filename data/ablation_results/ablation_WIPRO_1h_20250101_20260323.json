@@ -1,0 +1,120 @@
+{
+  "meta": {
+    "backtest_file": "WIPRO_1h_20250101_20260323.json",
+    "ticker": "WIPRO",
+    "display_name": "Wipro",
+    "market": "NSE",
+    "interval": "1h",
+    "n_records": 300,
+    "n_directional": 218,
+    "hold_count": 82,
+    "hold_rate": 0.2733,
+    "run_at": "2026-03-24T02:37:13.561671"
+  },
+  "variants": [
+    {
+      "total_signals": 300,
+      "active_signals": 300,
+      "hold_signals": 0,
+      "correct": 162,
+      "accuracy": 0.54,
+      "filtered_accuracy": 0.54,
+      "sharpe_ratio": 1.4532,
+      "cumulative_pnl": 0.237447,
+      "confusion_matrix": {
+        "TP": 123,
+        "TN": 39,
+        "FP": 22,
+        "FN": 116
+      },
+      "precision": 0.8483,
+      "recall": 0.5146,
+      "f1_score": 0.6406,
+      "long_accuracy": 0.8483,
+      "short_accuracy": 0.2516,
+      "long_signals": 145,
+      "short_signals": 155,
+      "variant": "random_baseline",
+      "label": "Random baseline",
+      "description": "Coin-flip LONG/SHORT \u2014 the floor all agents must beat"
+    },
+    {
+      "total_signals": 300,
+      "active_signals": 300,
+      "hold_signals": 0,
+      "correct": 239,
+      "accuracy": 0.7967,
+      "filtered_accuracy": 0.7967,
+      "sharpe_ratio": 8.746,
+      "cumulative_pnl": 1.256926,
+      "confusion_matrix": {
+        "TP": 239,
+        "TN": 0,
+        "FP": 61,
+        "FN": 0
+      },
+      "precision": 0.7967,
+      "recall": 1.0,
+      "f1_score": 0.8868,
+      "long_accuracy": 0.7967,
+      "short_accuracy": 0.0,
+      "long_signals": 300,
+      "short_signals": 0,
+      "variant": "indicators_only",
+      "label": "Indicators only",
+      "description": "Keyword-majority heuristic over indicator report \u2014 no LLM"
+    },
+    {
+      "total_signals": 218,
+      "active_signals": 218,
+      "hold_signals": 0,
+      "correct": 115,
+      "accuracy": 0.5275,
+      "filtered_accuracy": 0.5275,
+      "sharpe_ratio": 1.7749,
+      "cumulative_pnl": 0.205519,
+      "confusion_matrix": {
+        "TP": 94,
+        "TN": 21,
+        "FP": 21,
+        "FN": 82
+      },
+      "precision": 0.8174,
+      "recall": 0.5341,
+      "f1_score": 0.646,
+      "long_accuracy": 0.8174,
+      "short_accuracy": 0.2039,
+      "long_signals": 115,
+      "short_signals": 103,
+      "variant": "full_quantagent",
+      "label": "Full QuantAgent",
+      "description": "Complete pipeline: indicator + pattern + trend agents \u2192 LLM decision (directional calls only)"
+    }
+  ],
+  "comparison": {
+    "accuracy": {
+      "random_baseline": 0.54,
+      "indicators_only": 0.7967,
+      "full_quantagent": 0.5275
+    },
+    "sharpe_ratio": {
+      "random_baseline": 1.4532,
+      "indicators_only": 8.746,
+      "full_quantagent": 1.7749
+    },
+    "f1_score": {
+      "random_baseline": 0.6406,
+      "indicators_only": 0.8868,
+      "full_quantagent": 0.646
+    },
+    "cum_pnl": {
+      "random_baseline": 0.237447,
+      "indicators_only": 1.256926,
+      "full_quantagent": 0.205519
+    }
+  },
+  "best_variant": "indicators_only",
+  "lift_vs_random_pp": -1.25,
+  "lift_vs_indicators_pp": -26.92,
+  "has_prediction_layer": false
+}

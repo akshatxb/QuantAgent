@@ -99,15 +99,14 @@ body {
 .btn-settings:hover { color: var(--text); border-color: var(--border2); background: var(--bg2); }
 
 /* --- Main content area --- */
-.content { display: none; height: calc(100vh - 52px); min-height: 0; }
-.content.active { display: flex; min-height: 0; }
+.content { display: none; height: calc(100vh - 52px); min-height: 0; overflow: hidden; }
+.content.active { display: flex; height: calc(100vh - 52px); min-height: 0; align-items: stretch; }
 
 /* ======================================================
    TAB 1: LIVE
    ====================================================== */
 #tab-live {
   flex-direction: row;
-  overflow: hidden;
 }
 
 /* Left control panel */
@@ -285,26 +284,32 @@ body {
 }
 .signal-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-/* --- Right analysis panel --- */
-.analysis-panel {
-  width: 320px; flex-shrink: 0;
+/* --- Full-width analysis panel below chart --- */
+#analysisFullWrap {
   background: var(--bg1);
-  border-left: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-  align-self: stretch;
+  border-top: 1px solid var(--border);
+  overflow-y: visible;
 }
-.analysis-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
+#analysisFullContent {
+  display: block;
 }
-.analysis-title {
-  font-family: var(--mono); font-size: 11px; color: var(--text3);
-  letter-spacing: 0.1em; text-transform: uppercase;
+/* Metrics strip spans full width */
+#analysisFullContent .metrics-strip {
+  grid-column: 1 / -1;
 }
-.analysis-scroll { flex: 1; overflow-y: auto; min-height: 0; padding-bottom: 16px; }
+/* Agent cards in full width take half grid each */
+#analysisFullContent .agent-card {
+  margin: 8px 12px;
+}
+/* Decision card spans full width */
+#analysisFullContent .decision-card {
+  grid-column: 1 / -1;
+  margin: 12px;
+}
+/* Chart images go side by side */
+#analysisFullContent .chart-img-wrap {
+  margin: 0 12px 12px;
+}
 
 /* Decision card */
 .decision-card {
@@ -752,7 +757,6 @@ body {
 }
 /* Responsive */
 @media (max-width: 900px) {
-  .analysis-panel { display: none; }
   .control-panel { width: 220px; }
 }
 @media (max-width: 600px) {
@@ -838,8 +842,6 @@ body {
       <div class="panel-section">
         <div class="panel-label">Mode</div>
         <button class="btn-run primary" id="btnAnalyse" onclick="runAnalysis()">Run Analysis</button>
-        <button class="btn-run secondary" id="btnLiveStart" onclick="startLive()">Start Live Sim</button>
-        <button class="btn-run danger"   id="btnLiveStop" onclick="stopLive()" style="display:none">Stop Live Sim</button>
 
         <div class="progress-wrap" id="progressWrap">
           <div class="progress-step" id="progressStep">Initialising…</div>
@@ -847,105 +849,12 @@ body {
         </div>
       </div>
 
-      <!-- Live sim status panel -->
-      <div class="panel-section" id="sessionStats" style="display:none">
-        <div class="panel-label">Live status</div>
-
-        <!-- Current step banner -->
-        <div id="liveStepBanner" style="
-          background:var(--bg3); border:1px solid var(--border);
-          border-radius:var(--radius); padding:8px 10px; margin-bottom:10px;
-        ">
-          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:3px">CURRENT STEP</div>
-          <div id="liveStepText" style="font-family:var(--mono);font-size:11px;color:var(--accent)">Waiting to start…</div>
-        </div>
-
-        <!-- Progress bar (always visible when live) -->
-        <div style="margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-            <span style="font-family:var(--mono);font-size:9px;color:var(--text3)">Pipeline progress</span>
-            <span style="font-family:var(--mono);font-size:9px;color:var(--text3)" id="liveProgressPct">0%</span>
-          </div>
-          <div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">
-            <div id="liveProgressBar" style="height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .5s ease;box-shadow:0 0 6px var(--accent)"></div>
-          </div>
-        </div>
-
-        <!-- Next cycle countdown -->
-        <div style="
-          background:var(--bg2); border:1px solid var(--border);
-          border-radius:var(--radius); padding:8px 10px; margin-bottom:10px;
-          display:flex; justify-content:space-between; align-items:center;
-        ">
-          <span style="font-family:var(--mono);font-size:9px;color:var(--text3)">Next analysis in</span>
-          <span style="font-family:var(--mono);font-size:13px;color:var(--warn);font-weight:700" id="liveCountdown">--:--</span>
-        </div>
-
-        <!-- Last signal -->
-        <div style="margin-bottom:10px">
-          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:4px">LAST SIGNAL</div>
-          <div id="liveLastSignal" style="
-            background:var(--bg2); border:1px solid var(--border);
-            border-radius:var(--radius); padding:8px 10px;
-            font-family:var(--mono); font-size:11px; color:var(--text3);
-          ">No signal yet</div>
-        </div>
-
-        <!-- Error banner (hidden by default) -->
-        <div id="liveErrorBanner" style="
-          display:none; background:rgba(255,77,109,0.1);
-          border:1px solid rgba(255,77,109,0.3); border-radius:var(--radius);
-          padding:8px 10px; margin-bottom:10px;
-          font-family:var(--mono); font-size:10px; color:var(--short); line-height:1.6;
-        "></div>
-
-        <!-- Live accuracy card — headline metric -->
-        <div id="liveAccuracyCard" style="
-          background:var(--bg2); border:1px solid var(--border);
-          border-radius:var(--radius); padding:10px 12px; margin-bottom:10px;
-          display:flex; align-items:center; justify-content:space-between;
-        ">
-          <div>
-            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:3px">LIVE ACCURACY</div>
-            <div id="liveAccuracyValue" style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--text3)">—</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:3px">RESOLVED</div>
-            <div id="liveAccuracyResolved" style="font-family:var(--mono);font-size:14px;color:var(--text2)">0 / 0</div>
-          </div>
-        </div>
-
-        <!-- Outcome history strip -->
-        <div style="margin-bottom:10px">
-          <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:5px">RECENT OUTCOMES</div>
-          <div id="outcomeStrip" style="display:flex;gap:4px;flex-wrap:wrap;min-height:18px">
-            <span style="font-family:var(--mono);font-size:9px;color:var(--text3)">No outcomes yet</span>
-          </div>
-        </div>
-
-        <!-- Session counters -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px;text-align:center">
-            <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text)" id="sessTotal">0</div>
-            <div style="font-family:var(--mono);font-size:8px;color:var(--text3);margin-top:2px">TOTAL</div>
-          </div>
-          <div style="background:var(--bg2);border:1px solid rgba(0,212,170,0.2);border-radius:var(--radius);padding:8px;text-align:center">
-            <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--long)" id="sessLong">0</div>
-            <div style="font-family:var(--mono);font-size:8px;color:var(--text3);margin-top:2px">LONG</div>
-          </div>
-          <div style="background:var(--bg2);border:1px solid rgba(255,77,109,0.2);border-radius:var(--radius);padding:8px;text-align:center">
-            <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--short)" id="sessShort">0</div>
-            <div style="font-family:var(--mono);font-size:8px;color:var(--text3);margin-top:2px">SHORT</div>
-          </div>
-        </div>
-
-      </div>
-
     </aside>
 
-    <!-- Chart area -->
-    <main class="chart-area">
-      <div class="chart-topbar">
+    <!-- Chart area + analysis wrapper -->
+    <div style="flex:1; display:flex; flex-direction:column; overflow-y:auto; min-height:0;">
+    <main class="chart-area" id="chartArea" style="flex-shrink:0; min-height:0; display:none;">
+      <div class="chart-topbar" id="chartTopbar" style="display:none;">
         <div>
           <div class="chart-ticker" id="chartTicker">—</div>
           <div class="chart-price" id="chartPrice"></div>
@@ -956,34 +865,26 @@ body {
           <div class="chart-meta-item">Last update <span id="chartUpdated">—</span></div>
         </div>
       </div>
-      <div class="chart-canvas-wrap">
+      <div class="chart-canvas-wrap" id="chartCanvasWrap" style="display:none;">
         <canvas id="priceChart"></canvas>
         <!-- Empty state -->
         <div class="placeholder" id="chartPlaceholder">
           <div class="placeholder-icon">[ ]</div>
-          <div class="placeholder-text">Select an asset and run analysis<br>or start the live simulation</div>
+          <div class="placeholder-text">Select an asset and run analysis</div>
         </div>
       </div>
-      <div class="signal-legend">
+      <div class="signal-legend" id="signalLegend" style="display:none;">
         <div class="signal-legend-item"><div class="signal-dot" style="background:var(--long)"></div>LONG signal</div>
         <div class="signal-legend-item"><div class="signal-dot" style="background:var(--short)"></div>SHORT signal</div>
         <div class="signal-legend-item"><div class="signal-dot" style="background:var(--warn)"></div>Flipped by model</div>
       </div>
     </main>
 
-    <!-- Analysis panel -->
-    <aside class="analysis-panel">
-      <div class="analysis-header">
-        <div class="analysis-title">Analysis</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--text3)" id="analysisTime"></div>
-      </div>
-      <div class="analysis-scroll" id="analysisScroll">
-        <div class="placeholder" style="height:300px">
-          <div class="placeholder-icon">{ }</div>
-          <div class="placeholder-text">Results will appear here</div>
-        </div>
-      </div>
-    </aside>
+    <!-- Full-width analysis panel below chart -->
+    <div id="analysisFullWrap" style="display:none;">
+      <div id="analysisFullContent"></div>
+    </div>
+    </div><!-- /chart+analysis col wrapper -->
 
   </div><!-- /tab-live -->
 
@@ -1262,14 +1163,10 @@ let state = {
   btPnlChart: null,
   btAccChart: null,
   btCompareChart: null,
-  liveEventSource: null,
   signalHistory: [],   // [{time, close, decision, flipped}]
-  isLive: false,
   isAnalysing: false,
   isBacktesting: false,
-  pollInterval: 300,
   analysisProgressTimer: null,
-  countdownTimer: null,
 };
 
 const PROGRESS_STEPS = {
@@ -1489,6 +1386,10 @@ function initPriceChart() {
 function updatePriceChart(ohlcv, signals) {
   if (!state.priceChart) initPriceChart();
   document.getElementById('chartPlaceholder').style.display = 'none';
+  document.getElementById('chartTopbar').style.display = 'flex';
+  document.getElementById('chartCanvasWrap').style.display = 'block';
+  document.getElementById('signalLegend').style.display = 'flex';
+  document.getElementById('chartArea').style.display = 'flex';
 
   const labels   = ohlcv.datetime.map(d => d.slice(5,16));
   const barData  = ohlcv.datetime.map((_, i) => ({
@@ -1525,7 +1426,6 @@ function updatePriceChart(ohlcv, signals) {
 async function runAnalysis() {
   if (!state.selectedAsset) { toast('Select an asset first', 'err'); return; }
   if (state.isAnalysing)    { toast('Analysis already running', 'err'); return; }
-  if (state.isLive)         { toast('Stop the live simulation before running a manual analysis', 'err'); return; }
 
   const startDate = document.getElementById('startDate').value;
   const endDate   = document.getElementById('useCurrent').checked
@@ -1539,7 +1439,6 @@ async function runAnalysis() {
   showProgress(true);
   setProgress('fetching');
   document.getElementById('btnAnalyse').disabled = true;
-  document.getElementById('btnLiveStart').disabled = true;
   // Animate progress through expected steps since backend doesn't stream for single analysis
   state.analysisProgressTimer = animateAnalysisProgress();
 
@@ -1578,7 +1477,6 @@ async function runAnalysis() {
     if (state.analysisProgressTimer) { clearInterval(state.analysisProgressTimer); state.analysisProgressTimer = null; }
     showProgress(false);
     document.getElementById('btnAnalyse').disabled = false;
-    document.getElementById('btnLiveStart').disabled = false;
   }
 }
 
@@ -1601,12 +1499,45 @@ function renderAnalysis(data) {
   const horizon  = dec.forecast_horizon  || 'N/A';
   const just     = dec.justification     || '';
 
-  document.getElementById('analysisTime').textContent = new Date().toLocaleTimeString();
-
   const confColor = decision === 'LONG' ? 'var(--long)' : decision === 'SHORT' ? 'var(--short)' : 'var(--text3)';
+  const decColor  = confColor;
+  const decBg     = decision === 'LONG'  ? 'rgba(0,212,170,0.06)'
+                  : decision === 'SHORT' ? 'rgba(255,77,109,0.06)' : 'var(--bg2)';
 
-  let html = `
-    <div class="decision-card">
+  // ── Accuracy Metrics Strip ──────────────────────────────────────────────────
+  // Derive metrics from prediction if available, else from final_decision fields
+  const accuracy     = pred.accuracy   != null ? (pred.accuracy   * 100).toFixed(1) + '%' : '—';
+  const precision    = pred.precision  != null ? (pred.precision  * 100).toFixed(1) + '%' : '—';
+  const recall       = pred.recall     != null ? (pred.recall     * 100).toFixed(1) + '%' : '—';
+  const f1           = pred.f1_score   != null ? pred.f1_score.toFixed(3)                 : '—';
+  const confPct      = conf ? conf + '%' : '—';
+  const modelUsed    = pred.model_used ? 'yes' : 'no';
+  const rawSig       = pred.raw_decision || dec.decision || '—';
+  const flipNote     = flipped ? `<span style="color:var(--warn);margin-left:4px">↻ flipped</span>` : '';
+
+  function metricTile(label, value, color) {
+    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:12px 16px;text-align:center;flex:1;min-width:90px">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">${label}</div>
+      <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:${color||'var(--text)'}">${value}</div>
+    </div>`;
+  }
+
+  const metricsStrip = `
+    <div class="metrics-strip" style="padding:12px 12px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;">
+      ${metricTile('Signal', `${decision}${flipNote}`, decColor)}
+      ${metricTile('Forecast', horizon, 'var(--text2)')}
+      ${metricTile('Risk / Reward', rr, 'var(--accent2)')}
+      ${conf ? metricTile('Confidence', confPct, confColor) : ''}
+      ${pred.accuracy   != null ? metricTile('Accuracy',  accuracy,  pred.accuracy  >= 0.55 ? 'var(--long)' : pred.accuracy  >= 0.5 ? 'var(--warn)' : 'var(--short)') : ''}
+      ${pred.precision  != null ? metricTile('Precision', precision, pred.precision >= 0.55 ? 'var(--long)' : 'var(--text2)') : ''}
+      ${pred.recall     != null ? metricTile('Recall',    recall,    pred.recall    >= 0.55 ? 'var(--long)' : 'var(--text2)') : ''}
+      ${pred.f1_score   != null ? metricTile('F1 Score',  f1,        'var(--accent2)') : ''}
+      ${metricTile('Model', modelUsed, pred.model_used ? 'var(--accent)' : 'var(--text3)')}
+      ${flipped ? metricTile('Raw Signal', rawSig, 'var(--text3)') : ''}
+    </div>`;
+
+  let html = metricsStrip + `
+    <div class="decision-card" style="background:${decBg};border-color:${decColor}33;">
       <div class="decision-badge ${decision}">${decision}${flipped ? ' <span style="font-size:10px;color:var(--warn)">↻</span>' : ''}</div>
       <div class="decision-meta">
         <div class="d-meta-item">
@@ -1638,18 +1569,19 @@ function renderAnalysis(data) {
     </div>
   `;
 
-  // Agent cards
+  // Agent cards — render in a 3-column row
   const agents = [
     { key: 'technical_indicators', label: 'Indicator Agent', color: '#0099ff' },
     { key: 'pattern_analysis',     label: 'Pattern Agent',   color: '#f5a623' },
     { key: 'trend_analysis',       label: 'Trend Agent',     color: '#a855f7' },
   ];
 
-  agents.forEach(a => {
+  // Wrap agent cards in a full-width grid row
+  const agentCards = agents.map(a => {
     const content = data[a.key] || '';
-    if (!content) return;
-    html += `
-      <div class="agent-card">
+    if (!content) return '';
+    return `
+      <div class="agent-card" style="margin:8px;">
         <div class="agent-card-header" onclick="toggleCard(this)">
           <div class="agent-card-title">
             <div class="agent-icon" style="background:${a.color}"></div>
@@ -1657,34 +1589,35 @@ function renderAnalysis(data) {
           </div>
           <div class="agent-card-chevron">▼</div>
         </div>
-        <div class="agent-card-body">
+        <div class="agent-card-body open">
           <div class="agent-report">${renderMarkdown(content)}</div>
         </div>
-      </div>
-    `;
-  });
+      </div>`;
+  }).join('');
 
-  // Chart images
-  if (data.pattern_chart) {
-    html += `
-      <div class="chart-img-wrap">
-        <div class="chart-img-label">Pattern chart</div>
-        <img src="data:image/png;base64,${data.pattern_chart}" alt="Pattern chart">
-      </div>`;
-  }
-  if (data.trend_chart) {
-    html += `
-      <div class="chart-img-wrap">
-        <div class="chart-img-label">Trend chart</div>
-        <img src="data:image/png;base64,${data.trend_chart}" alt="Trend chart">
-      </div>`;
+  if (agentCards.trim()) {
+    html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:0 4px 4px;grid-column:1/-1">${agentCards}</div>`;
   }
 
-  document.getElementById('analysisScroll').innerHTML = html;
+  // Chart images — side by side
+  if (data.pattern_chart || data.trend_chart) {
+    html += `<div style="display:grid;grid-template-columns:${data.pattern_chart && data.trend_chart ? '1fr 1fr' : '1fr'};gap:12px;padding:0 12px 12px;grid-column:1/-1">`;
+    if (data.pattern_chart) {
+      html += `<div class="chart-img-wrap" style="margin:0"><div class="chart-img-label">Pattern chart</div><img src="data:image/png;base64,${data.pattern_chart}" alt="Pattern chart"></div>`;
+    }
+    if (data.trend_chart) {
+      html += `<div class="chart-img-wrap" style="margin:0"><div class="chart-img-label">Trend chart</div><img src="data:image/png;base64,${data.trend_chart}" alt="Trend chart"></div>`;
+    }
+    html += `</div>`;
+  }
+
+  document.getElementById('analysisFullContent').innerHTML = html;
+  document.getElementById('analysisFullWrap').style.display = 'block';
 
   // Update chart header
   document.getElementById('chartTicker').textContent = state.selectedAsset || '—';
   document.getElementById('chartTf').textContent     = state.selectedTf;
+  document.getElementById('analysisTime') && (document.getElementById('analysisTime').textContent = new Date().toLocaleTimeString());
 
   // Store signal for chart overlay
   const signalEntry = {
@@ -1703,294 +1636,11 @@ function toggleCard(header) {
 }
 
 // ============================================================
-// LIVE SIMULATION
-// ============================================================
-async function startLive() {
-  if (!state.selectedAsset) {
-    toast('Select an asset first', 'err');
-    // Also flash the asset section so user knows where to look
-    const grid = document.getElementById('assetGrid');
-    if (grid) { grid.style.outline = '1px solid var(--short)'; setTimeout(() => grid.style.outline = '', 2000); }
-    return;
-  }
-  if (state.isAnalysing)   { toast('Wait for the current analysis to finish first', 'err'); return; }
-  if (state.isBacktesting) { toast('Stop the backtest before starting live sim', 'err'); return; }
-
-  try {
-    const res  = await fetch('/api/live/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticker: state.selectedAsset, interval: state.selectedTf })
-    });
-    const data = await res.json();
-    if (data.error) { toast(data.error, 'err'); return; }
-
-    state.isLive = true;
-    document.getElementById('btnLiveStart').style.display = 'none';
-    document.getElementById('btnLiveStop').style.display  = 'block';
-    document.getElementById('sessionStats').style.display = 'block';
-    document.getElementById('chartTicker').textContent = state.selectedAsset;
-    document.getElementById('chartTf').textContent     = state.selectedTf;
-    hideLiveError();
-    // Show immediate feedback — don't wait for SSE
-    setStatus('running', 'starting…');
-    setLiveStep('Connecting to live stream…', 5);
-    connectSSE();
-    toast('Live simulation started', 'ok');
-  } catch(e) {
-    toast('Failed to start live sim: ' + e.message, 'err');
-  }
-}
-
-async function stopLive() {
-  try { await fetch('/api/live/stop', { method: 'POST' }); } catch(e) {}
-  state.isLive = false;
-  state.signalHistory = [];
-  stopCountdown();
-  if (state.liveEventSource) { state.liveEventSource.close(); state.liveEventSource = null; }
-  document.getElementById('btnLiveStart').style.display = 'block';
-  document.getElementById('btnLiveStop').style.display  = 'none';
-  document.getElementById('sessionStats').style.display = 'none';
-  document.getElementById('sessTotal').textContent  = '0';
-  document.getElementById('sessLong').textContent   = '0';
-  document.getElementById('sessShort').textContent  = '0';
-  document.getElementById('liveLastSignal').innerHTML = 'No signal yet';
-  const accEl = document.getElementById('liveAccuracyValue');
-  const resEl = document.getElementById('liveAccuracyResolved');
-  const strip = document.getElementById('outcomeStrip');
-  if (accEl) { accEl.textContent = '—'; accEl.style.color = 'var(--text3)'; }
-  if (resEl) resEl.textContent = '0 / 0';
-  if (strip) strip.innerHTML = '<span style="font-family:var(--mono);font-size:9px;color:var(--text3)">No outcomes yet</span>';
-  setLiveStep('Simulation stopped', 0);
-  hideLiveError();
-  showProgress(false);
-  setStatus('', 'idle');
-  toast('Live simulation stopped', 'ok');
-}
-
-function connectSSE() {
-  if (state.liveEventSource) state.liveEventSource.close();
-  state.liveEventSource = new EventSource('/api/live/stream');
-
-  state.liveEventSource.onmessage = e => {
-    const msg = JSON.parse(e.data);
-    handleSSEEvent(msg.type, msg.payload);
-  };
-  state.liveEventSource.onerror = () => {
-    if (state.isLive && document.getElementById('btnLiveStop').style.display !== 'none') {
-      setTimeout(() => { if (state.isLive) connectSSE(); }, 3000);
-    }
-  };
-}
-
-function handleSSEEvent(type, payload) {
-
-  if (type === 'status') {
-    if (payload.state === 'connected') {
-      // SSE stream connected — update step to show we're live
-      setStatus('live', 'live');
-      setLiveStep('Connected — first analysis starting…', 5);
-    }
-    if (payload.state === 'started') {
-      setStatus('live', 'live');
-      setLiveStep('Pipeline active — first analysis starting…', 0);
-      state.pollInterval = payload.poll_every_seconds || 300;
-      startCountdown(state.pollInterval);
-    }
-    if (payload.state === 'stopped') {
-      setStatus('', 'idle');
-      setLiveStep('Simulation stopped', 0);
-      stopCountdown();
-    }
-    if (payload.state === 'error') {
-      setStatus('', 'error');
-      setLiveStep('Error: ' + payload.message, 0);
-      toast(payload.message, 'err');
-    }
-    if (payload.state === 'waiting') {
-      setStatus('', 'error');
-      const msg = payload.message || 'No data returned for this ticker/timeframe.';
-      setLiveStep('No data: ' + msg, 0);
-      showLiveError(msg);
-    }
-  }
-
-  if (type === 'progress') {
-    const step = PROGRESS_STEPS[payload.step];
-    if (step) {
-      setLiveStep(step.label, step.pct);
-      setProgress(payload.step);
-      showProgress(payload.step !== 'done');
-      if (payload.step !== 'done') setStatus('running', payload.step + '…');
-      else {
-        setStatus('live', 'live');
-        setLiveStep('Analysis complete — next cycle in ' + formatSecs(state.pollInterval), 100);
-        startCountdown(state.pollInterval);
-      }
-    }
-  }
-
-  if (type === 'tick') {
-    document.getElementById('chartPrice').textContent =
-      payload.close.toLocaleString() + ' · ' + payload.time.slice(0,16);
-    document.getElementById('chartUpdated').textContent = new Date().toLocaleTimeString();
-    // tick means a new cycle just started
-    setLiveStep('Fetching latest candles…', 10);
-    stopCountdown();
-  }
-
-  if (type === 'signal') {
-    renderAnalysis({
-      final_decision:       payload.raw_decision,
-      prediction:           payload.prediction,
-      technical_indicators: payload.indicator_report,
-      pattern_analysis:     payload.pattern_report,
-      trend_analysis:       payload.trend_report,
-      pattern_chart:        payload.pattern_chart,
-      trend_chart:          payload.trend_chart,
-    });
-
-    if (payload.ohlcv) {
-      const sig = payload.prediction || payload.raw_decision || {};
-      const dec = (sig.decision || '').toUpperCase();
-      const lastClose = payload.ohlcv.close.at(-1);
-      const lastHigh  = payload.ohlcv.high.at(-1);
-      const lastLow   = payload.ohlcv.low.at(-1);
-      const label     = payload.ohlcv.datetime.at(-1).slice(5,16);
-
-      state.signalHistory.push({
-        decision: dec, flipped: sig.was_flipped,
-        label, close: lastClose, high: lastHigh, low: lastLow,
-      });
-      updatePriceChart(payload.ohlcv, state.signalHistory);
-
-      // Update last signal badge
-      const color = dec === 'LONG' ? 'var(--long)' : dec === 'SHORT' ? 'var(--short)' : 'var(--text2)';
-      const rr    = (payload.raw_decision || {}).risk_reward_ratio || 'N/A';
-      document.getElementById('liveLastSignal').innerHTML =
-        '<span style="color:' + color + ';font-weight:700;font-size:14px">' + dec + '</span>' +
-        '<span style="color:var(--text3);margin-left:8px">R:R ' + rr + '</span>' +
-        '<span style="color:var(--text3);margin-left:8px;font-size:9px">' + new Date().toLocaleTimeString() + '</span>';
-    }
-
-    document.getElementById('sessTotal').textContent  = state.signalHistory.length;
-    document.getElementById('sessLong').textContent   = state.signalHistory.filter(s => s.decision === 'LONG').length;
-    document.getElementById('sessShort').textContent  = state.signalHistory.filter(s => s.decision === 'SHORT').length;
-
-    // Show pending outcome indicator on chart marker
-    updateOutcomeMarkers();
-  }
-
-  if (type === 'accuracy') {
-    // A past signal outcome has been resolved
-    const acc    = payload.live_accuracy_pct;
-    const total  = payload.resolved_signals;
-    const correct = payload.correct_signals;
-
-    // Update accuracy card
-    const accEl = document.getElementById('liveAccuracyValue');
-    const resEl = document.getElementById('liveAccuracyResolved');
-    if (accEl) {
-      accEl.textContent = acc !== null ? acc.toFixed(1) + '%' : '—';
-      accEl.style.color = acc === null ? 'var(--text3)'
-                        : acc >= 55   ? 'var(--long)'
-                        : acc >= 45   ? 'var(--warn)'
-                        : 'var(--short)';
-    }
-    if (resEl) resEl.textContent = correct + ' / ' + total;
-
-    // Add dot to outcome strip
-    addOutcomeDot(payload.correct, payload.decision, payload.pnl_pct);
-
-    // Toast the result
-    const pnl = payload.pnl_pct >= 0 ? '+' + payload.pnl_pct.toFixed(2) : payload.pnl_pct.toFixed(2);
-    toast(
-      (payload.correct ? 'CORRECT' : 'WRONG') +
-      ' — ' + payload.decision +
-      ' ' + pnl + '%' +
-      ' | Live acc: ' + (acc !== null ? acc.toFixed(1) + '%' : '—'),
-      payload.correct ? 'ok' : 'err'
-    );
-  }
-}
-
-function addOutcomeDot(correct, decision, pnl) {
-  const strip = document.getElementById('outcomeStrip');
-  if (!strip) return;
-  // Remove placeholder text if present
-  const placeholder = strip.querySelector('span');
-  if (placeholder && placeholder.textContent === 'No outcomes yet') placeholder.remove();
-
-  const dot = document.createElement('div');
-  dot.title = (correct ? 'CORRECT' : 'WRONG') + ' ' + decision + ' ' + (pnl >= 0 ? '+' : '') + pnl + '%';
-  dot.style.cssText = [
-    'width:14px', 'height:14px', 'border-radius:3px',
-    'background:' + (correct ? 'var(--long)' : 'var(--short)'),
-    'cursor:default', 'flex-shrink:0',
-    'border:1px solid ' + (correct ? 'rgba(0,212,170,0.4)' : 'rgba(255,77,109,0.4)'),
-  ].join(';');
-  strip.appendChild(dot);
-
-  // Keep only last 20 dots
-  while (strip.children.length > 20) strip.removeChild(strip.firstChild);
-}
-
-function updateOutcomeMarkers() {
-  // placeholder — chart markers updated separately when outcomes resolve
-}
-
-// Live step display helpers
-function setLiveStep(text, pct) {
-  const el = document.getElementById('liveStepText');
-  const bar = document.getElementById('liveProgressBar');
-  const pctEl = document.getElementById('liveProgressPct');
-  if (el) el.textContent = text;
-  if (bar) bar.style.width = pct + '%';
-  if (pctEl) pctEl.textContent = pct + '%';
-}
-
-// Countdown timer
-function startCountdown(totalSecs) {
-  stopCountdown();
-  let remaining = totalSecs;
-  const el = document.getElementById('liveCountdown');
-  if (!el) return;
-  el.textContent = formatSecs(remaining);
-  state.countdownTimer = setInterval(() => {
-    remaining -= 1;
-    if (remaining <= 0) {
-      el.textContent = 'Starting…';
-      stopCountdown();
-    } else {
-      el.textContent = formatSecs(remaining);
-      // colour shifts as countdown nears zero
-      el.style.color = remaining < 30 ? 'var(--accent)' : 'var(--warn)';
-    }
-  }, 1000);
-}
-
-function stopCountdown() {
-  if (state.countdownTimer) {
-    clearInterval(state.countdownTimer);
-    state.countdownTimer = null;
-  }
-  const el = document.getElementById('liveCountdown');
-  if (el) { el.textContent = '--:--'; el.style.color = 'var(--warn)'; }
-}
-
-function formatSecs(s) {
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return (m > 0 ? m + 'm ' : '') + sec + 's';
-}
-
-// ============================================================
 // BACKTEST
 // ============================================================
 async function runBacktest() {
   const ticker = document.getElementById('btTicker').value.trim();
   if (!ticker) { toast('Enter a ticker', 'err'); return; }
-  if (state.isLive) { toast('Stop the live simulation before running a backtest', 'err'); return; }
   if (state.isAnalysing) { toast('Wait for the current analysis to finish', 'err'); return; }
   if (state.isBacktesting) { toast('Backtest already running', 'err'); return; }
 
@@ -2367,20 +2017,6 @@ function renderMarkdown(text) {
   return html;
 }
 
-
-// ============================================================
-// LIVE ERROR DISPLAY
-// ============================================================
-function showLiveError(msg) {
-  const el = document.getElementById('liveErrorBanner');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-function hideLiveError() {
-  const el = document.getElementById('liveErrorBanner');
-  if (el) el.style.display = 'none';
-}
 
 // ============================================================
 // PROVIDER SECTION VISIBILITY (no API call)

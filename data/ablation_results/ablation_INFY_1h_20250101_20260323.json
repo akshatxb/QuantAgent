@@ -1,0 +1,120 @@
+{
+  "meta": {
+    "backtest_file": "INFY_1h_20250101_20260323.json",
+    "ticker": "INFY",
+    "display_name": "Infosys",
+    "market": "NSE",
+    "interval": "1h",
+    "n_records": 300,
+    "n_directional": 215,
+    "hold_count": 85,
+    "hold_rate": 0.2833,
+    "run_at": "2026-03-24T02:37:18.919583"
+  },
+  "variants": [
+    {
+      "total_signals": 300,
+      "active_signals": 300,
+      "hold_signals": 0,
+      "correct": 145,
+      "accuracy": 0.4833,
+      "filtered_accuracy": 0.4833,
+      "sharpe_ratio": -0.4722,
+      "cumulative_pnl": -0.06701,
+      "confusion_matrix": {
+        "TP": 98,
+        "TN": 47,
+        "FP": 47,
+        "FN": 108
+      },
+      "precision": 0.6759,
+      "recall": 0.4757,
+      "f1_score": 0.5584,
+      "long_accuracy": 0.6759,
+      "short_accuracy": 0.3032,
+      "long_signals": 145,
+      "short_signals": 155,
+      "variant": "random_baseline",
+      "label": "Random baseline",
+      "description": "Coin-flip LONG/SHORT \u2014 the floor all agents must beat"
+    },
+    {
+      "total_signals": 300,
+      "active_signals": 300,
+      "hold_signals": 0,
+      "correct": 206,
+      "accuracy": 0.6867,
+      "filtered_accuracy": 0.6867,
+      "sharpe_ratio": -0.5902,
+      "cumulative_pnl": -0.083733,
+      "confusion_matrix": {
+        "TP": 206,
+        "TN": 0,
+        "FP": 94,
+        "FN": 0
+      },
+      "precision": 0.6867,
+      "recall": 1.0,
+      "f1_score": 0.8142,
+      "long_accuracy": 0.6867,
+      "short_accuracy": 0.0,
+      "long_signals": 300,
+      "short_signals": 0,
+      "variant": "indicators_only",
+      "label": "Indicators only",
+      "description": "Keyword-majority heuristic over indicator report \u2014 no LLM"
+    },
+    {
+      "total_signals": 215,
+      "active_signals": 215,
+      "hold_signals": 0,
+      "correct": 122,
+      "accuracy": 0.5674,
+      "filtered_accuracy": 0.5674,
+      "sharpe_ratio": 0.9976,
+      "cumulative_pnl": 0.09952,
+      "confusion_matrix": {
+        "TP": 88,
+        "TN": 34,
+        "FP": 29,
+        "FN": 64
+      },
+      "precision": 0.7521,
+      "recall": 0.5789,
+      "f1_score": 0.6543,
+      "long_accuracy": 0.7521,
+      "short_accuracy": 0.3469,
+      "long_signals": 117,
+      "short_signals": 98,
+      "variant": "full_quantagent",
+      "label": "Full QuantAgent",
+      "description": "Complete pipeline: indicator + pattern + trend agents \u2192 LLM decision (directional calls only)"
+    }
+  ],
+  "comparison": {
+    "accuracy": {
+      "random_baseline": 0.4833,
+      "indicators_only": 0.6867,
+      "full_quantagent": 0.5674
+    },
+    "sharpe_ratio": {
+      "random_baseline": -0.4722,
+      "indicators_only": -0.5902,
+      "full_quantagent": 0.9976
+    },
+    "f1_score": {
+      "random_baseline": 0.5584,
+      "indicators_only": 0.8142,
+      "full_quantagent": 0.6543
+    },
+    "cum_pnl": {
+      "random_baseline": -0.06701,
+      "indicators_only": -0.083733,
+      "full_quantagent": 0.09952
+    }
+  },
+  "best_variant": "indicators_only",
+  "lift_vs_random_pp": 8.41,
+  "lift_vs_indicators_pp": -11.93,
+  "has_prediction_layer": false
+}

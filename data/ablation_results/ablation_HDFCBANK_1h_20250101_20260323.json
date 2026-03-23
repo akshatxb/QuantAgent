@@ -1,0 +1,120 @@
+{
+  "meta": {
+    "backtest_file": "HDFCBANK_1h_20250101_20260323.json",
+    "ticker": "HDFCBANK",
+    "display_name": "HDFC Bank",
+    "market": "NSE",
+    "interval": "1h",
+    "n_records": 300,
+    "n_directional": 221,
+    "hold_count": 79,
+    "hold_rate": 0.2633,
+    "run_at": "2026-03-24T02:37:23.807493"
+  },
+  "variants": [
+    {
+      "total_signals": 300,
+      "active_signals": 300,
+      "hold_signals": 0,
+      "correct": 142,
+      "accuracy": 0.4733,
+      "filtered_accuracy": 0.4733,
+      "sharpe_ratio": -2.2096,
+      "cumulative_pnl": -0.207759,
+      "confusion_matrix": {
+        "TP": 106,
+        "TN": 36,
+        "FP": 39,
+        "FN": 119
+      },
+      "precision": 0.731,
+      "recall": 0.4711,
+      "f1_score": 0.573,
+      "long_accuracy": 0.731,
+      "short_accuracy": 0.2323,
+      "long_signals": 145,
+      "short_signals": 155,
+      "variant": "random_baseline",
+      "label": "Random baseline",
+      "description": "Coin-flip LONG/SHORT \u2014 the floor all agents must beat"
+    },
+    {
+      "total_signals": 300,
+      "active_signals": 300,
+      "hold_signals": 0,
+      "correct": 225,
+      "accuracy": 0.75,
+      "filtered_accuracy": 0.75,
+      "sharpe_ratio": 4.2823,
+      "cumulative_pnl": 0.392495,
+      "confusion_matrix": {
+        "TP": 225,
+        "TN": 0,
+        "FP": 75,
+        "FN": 0
+      },
+      "precision": 0.75,
+      "recall": 1.0,
+      "f1_score": 0.8571,
+      "long_accuracy": 0.75,
+      "short_accuracy": 0.0,
+      "long_signals": 300,
+      "short_signals": 0,
+      "variant": "indicators_only",
+      "label": "Indicators only",
+      "description": "Keyword-majority heuristic over indicator report \u2014 no LLM"
+    },
+    {
+      "total_signals": 221,
+      "active_signals": 221,
+      "hold_signals": 0,
+      "correct": 143,
+      "accuracy": 0.6471,
+      "filtered_accuracy": 0.6471,
+      "sharpe_ratio": 3.6714,
+      "cumulative_pnl": 0.252035,
+      "confusion_matrix": {
+        "TP": 108,
+        "TN": 35,
+        "FP": 20,
+        "FN": 58
+      },
+      "precision": 0.8438,
+      "recall": 0.6506,
+      "f1_score": 0.7347,
+      "long_accuracy": 0.8438,
+      "short_accuracy": 0.3763,
+      "long_signals": 128,
+      "short_signals": 93,
+      "variant": "full_quantagent",
+      "label": "Full QuantAgent",
+      "description": "Complete pipeline: indicator + pattern + trend agents \u2192 LLM decision (directional calls only)"
+    }
+  ],
+  "comparison": {
+    "accuracy": {
+      "random_baseline": 0.4733,
+      "indicators_only": 0.75,
+      "full_quantagent": 0.6471
+    },
+    "sharpe_ratio": {
+      "random_baseline": -2.2096,
+      "indicators_only": 4.2823,
+      "full_quantagent": 3.6714
+    },
+    "f1_score": {
+      "random_baseline": 0.573,
+      "indicators_only": 0.8571,
+      "full_quantagent": 0.7347
+    },
+    "cum_pnl": {
+      "random_baseline": -0.207759,
+      "indicators_only": 0.392495,
+      "full_quantagent": 0.252035
+    }
+  },
+  "best_variant": "indicators_only",
+  "lift_vs_random_pp": 17.38,
+  "lift_vs_indicators_pp": -10.29,
+  "has_prediction_layer": false
+}
